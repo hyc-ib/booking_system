@@ -11,6 +11,7 @@ from .models import Car, Reservation, Profile, EmailVerifyToken
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
 
+
 # 👉 用記憶體暫存（開發用）
 otp_store = {}
 
@@ -133,25 +134,55 @@ def check_email_page(request):
 def home(request):
     return render(request, "booking/home.html")
 
+@login_required
+def reserve_step1(request):
+    if request.method == "POST":
+        car_type = request.POST.get("car_type")
+        request.session["car_type"] = car_type
+        return redirect("reserve_step2")
+
+    return render(request, "booking/reserve_step1.html")
 
 @login_required
-def reserve_car(request):
-    cars = Car.objects.all()
+def reserve_step2(request):
+    car_type = request.session.get("car_type")
+
+    if not car_type:
+        return redirect("reserve_step1")
+
+    cars = Car.objects.filter(type=car_type)
 
     if request.method == "POST":
         car_id = request.POST.get("car")
         start_time = request.POST.get("start_time")
         end_time = request.POST.get("end_time")
 
-        car = Car.objects.get(id=car_id)
+        request.session["car_id"] = car_id
+        request.session["start_time"] = start_time
+        request.session["end_time"] = end_time
 
-        Reservation.objects.create(
-            user=request.user,
-            car=car,
-            start_time=start_time,
-            end_time=end_time
-        )
+        return redirect("reserve_success")
 
-        return redirect("reserve")
+    return render(request, "booking/reserve_step2.html", {
+        "cars": cars,
+        "car_type": car_type,
+        "range_0_24": range(24)
+    })
 
-    return render(request, "booking/reserve.html", {"cars": cars})
+@login_required
+def reserve_success(request):
+
+    car_id = request.session.get("car_id")
+    start_time = request.session.get("start_time")
+    end_time = request.session.get("end_time")
+
+    car = None
+    if car_id:
+        from .models import Car
+        car = Car.objects.filter(id=car_id).first()
+
+    return render(request, "booking/reserve_success.html", {
+        "car": car,
+        "start_time": start_time,
+        "end_time": end_time
+    })

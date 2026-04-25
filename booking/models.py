@@ -3,23 +3,6 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
 import uuid
-
-class Car(models.Model):
-    name = models.CharField(max_length=100)
-    plate = models.CharField(max_length=20)
-
-    def __str__(self):
-        return f"{self.name} ({self.plate})"
-
-class Reservation(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    car = models.ForeignKey(Car, on_delete=models.CASCADE)
-
-    start_time = models.DateTimeField()
-    end_time = models.DateTimeField()
-
-    def __str__(self):
-        return f"{self.user} - {self.car}"
     
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -35,3 +18,31 @@ class EmailVerifyToken(models.Model):
 
     def is_expired(self):
         return timezone.now() > self.created_at + timedelta(minutes=10)
+
+class Car(models.Model):
+    TYPE_CHOICES = (
+        ("4人座", "4人座"),
+        ("10人座", "10人座"),
+    )
+
+    name = models.CharField(max_length=50)
+    plate = models.CharField(max_length=20)
+    type = models.CharField(
+        max_length=10,
+        choices=TYPE_CHOICES,
+        null=True,      # 👈 加這個
+        blank=True      # 👈 加這個
+    )
+
+    def __str__(self):
+        return f"{self.name} ({self.plate})"
+
+class Reservation(models.Model):
+    user = models.ForeignKey("auth.User", on_delete=models.CASCADE)
+    car = models.ForeignKey(Car, on_delete=models.CASCADE)
+
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+
+    def __str__(self):
+        return f"{self.user} - {self.car}"
