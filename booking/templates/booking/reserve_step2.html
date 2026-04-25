@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.page-title {
+    text-align: center;
+    font-size: 22px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+/* ===== progress ===== */
+.progress-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 25px;
+}
+
+.step-bar {
+    display: flex;
+    align-items: center;
+    width: 60%;
+    justify-content: space-between;
+    position: relative;
+}
+
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 2;
+}
+
+.circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #ddd;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    color: white;
+}
+
+.step.active .circle {
+    background: #1f4ed8;
+}
+
+.step.done .circle {
+    background: #22c55e;
+}
+
+.step-line {
+    position: absolute;
+    top: 16px;
+    left: 10%;
+    right: 10%;
+    height: 4px;
+    background: #ddd;
+    z-index: 1;
+}
+
+.step-line-fill {
+    position: absolute;
+    top: 16px;
+    left: 10%;
+    height: 4px;
+    background: #1f4ed8;
+    width: 50%; /* ⭐ Step2 = 50% */
+    z-index: 1;
+}
+
+/* layout */
+.wrapper {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+/* calendar */
+.calendar {
+    position: relative;
+    width: 400px;
+    height: 1200px;
+    border: 1px solid #ddd;
+    background: #fafafa;
+    overflow: hidden;
+}
+
+.hour-row {
+    display: flex;
+    height: 50px;
+    border-bottom: 1px solid #eee;
+}
+
+.hour {
+    width: 60px;
+    font-size: 12px;
+    color: #666;
+    text-align: right;
+    padding-right: 8px;
+}
+
+.slot {
+    flex: 1;
+    background: white;
+}
+
+#nowLine {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: red;
+    z-index: 10;
+}
+
+/* panel */
+.panel {
+    flex: 1;
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+}
+
+.time-group {
+    display: flex;
+    gap: 10px;
+}
+
+select {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+</style>
+
+<h2 class="page-title">📅 車輛預約（{{ car_type }}）</h2>
+
+<!-- ===== 進度條 ===== -->
+<div class="progress-wrapper">
+    <div class="step-bar">
+
+        <div class="step done">
+            <div class="circle">1</div>
+            <small>選車型</small>
+        </div>
+
+        <div class="step active">
+            <div class="circle">2</div>
+            <small>選時間</small>
+        </div>
+
+        <div class="step">
+            <div class="circle">3</div>
+            <small>完成</small>
+        </div>
+
+        <div class="step-line"></div>
+        <div class="step-line-fill"></div>
+
+    </div>
+</div>
+
+<div class="wrapper">
+
+    <!-- calendar -->
+    <div class="calendar">
+        <div id="nowLine"></div>
+
+        {% for i in range_0_24 %}
+        <div class="hour-row">
+            <div class="hour">{{ i }}:00</div>
+            <div class="slot"></div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- form -->
+    <div class="panel">
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label">借車時間</label>
+                <div class="time-group">
+
+                    <select name="start_hour" required>
+                        <option value="">小時</option>
+                        {% for i in range_0_24 %}
+                        <option value="{{ i }}">{{ i }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <select name="start_minute" required>
+                        <option value="">分鐘</option>
+                        <option>00</option>
+                        <option>15</option>
+                        <option>30</option>
+                        <option>45</option>
+                    </select>
+
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">還車時間</label>
+                <div class="time-group">
+
+                    <select name="end_hour" required>
+                        <option value="">小時</option>
+                        {% for i in range_0_24 %}
+                        <option value="{{ i }}">{{ i }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <select name="end_minute" required>
+                        <option value="">分鐘</option>
+                        <option>00</option>
+                        <option>15</option>
+                        <option>30</option>
+                        <option>45</option>
+                    </select>
+
+                </div>
+            </div>
+
+            <button class="btn btn-success w-100">
+                送出預約
+            </button>
+
+        </form>
+
+    </div>
+</div>
+
+<script>
+function updateNowLine() {
+    const nowLine = document.getElementById("nowLine");
+
+    const now = new Date();
+    const hour = now.getHours();
+    const minute = now.getMinutes();
+
+    const rowHeight = 50;
+
+    const position = (hour + minute / 60) * rowHeight;
+
+    nowLine.style.top = position + "px";
+}
+
+// init
+updateNowLine();
+setInterval(updateNowLine, 60000);
+</script>
+
+{% endblock %}

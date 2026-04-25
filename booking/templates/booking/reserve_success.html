@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.success-card {
+    max-width: 420px;
+    margin: 60px auto;
+    background: white;
+    border-radius: 18px;
+    padding: 25px;
+
+    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    border-top: 5px solid #1f4ed8;
+}
+
+.title {
+    text-align: center;
+    font-size: 22px;
+    font-weight: bold;
+    color: #1f4ed8;
+    margin-bottom: 20px;
+}
+
+.row-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 15px;
+}
+
+.label {
+    color: #666;
+}
+
+.value {
+    font-weight: bold;
+}
+
+.success-icon {
+    text-align: center;
+    font-size: 40px;
+    margin-bottom: 10px;
+}
+</style>
+
+<div class="success-card">
+
+    <div class="success-icon">🎉</div>
+
+    <div class="title">預約成功</div>
+
+    <div class="row-item">
+        <div class="label">預約人</div>
+        <div class="value">{{ request.user.username }}</div>
+    </div>
+
+    <div class="row-item">
+        <div class="label">車輛</div>
+        <div class="value">
+            {% if car %}
+                {{ car.name }} ({{ car.plate }})
+            {% else %}
+                -
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row-item">
+        <div class="label">開始時間</div>
+        <div class="value">{{ start_time }}</div>
+    </div>
+
+    <div class="row-item">
+        <div class="label">結束時間</div>
+        <div class="value">{{ end_time }}</div>
+    </div>
+
+</div>
+
+{% endblock %}
