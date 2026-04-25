@@ -1,32 +1,187 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>公務車系統</title>
+<meta charset="UTF-8">
+<title>公務車系統</title>
 
-    <!-- Bootstrap CDN -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+{% load static %}
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+
+/* =======================
+   BASE
+======================= */
+body {
+    margin: 0;
+    display: flex;
+    min-height: 100vh;
+    background: #f5f6f8;
+}
+
+/* =======================
+   SIDEBAR (WHITE)
+======================= */
+.sidebar {
+    width: 200px;
+    background: #ffffff;
+    color: #111827;
+    transition: 0.3s;
+    display: flex;
+    flex-direction: column;
+
+    border-right: 1px solid #e5e7eb;
+}
+
+.sidebar.collapsed {
+    width: 90px;
+}
+
+/* toggle button */
+.toggle-btn {
+    background: none;
+    border: none;
+    color: #111827;
+    font-size: 25px;
+    padding: 30px;
+    text-align: left;
+}
+
+/* menu */
+.menu {
+    display: flex;
+    flex-direction: column;
+    margin-top: 10px;
+}
+
+/* menu item */
+.menu a {
+    color: #111827;
+    text-decoration: none;
+    padding: 12px 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    border-radius: 10px;
+    margin: 4px 8px;
+
+    transition: 0.2s;
+}
+
+/* hover */
+.menu a:hover {
+    background: #f3f4f6;
+}
+
+/* active click */
+.menu a:active {
+    background: #e5e7eb;
+}
+
+/* =======================
+   ICON FIX
+======================= */
+.icon-img {
+    width: 40px;     /* ⭐ 不要太大 */
+    height: 40px;
+    object-fit: contain;
+
+    /* ⭐ 解決黑色透明 icon 看不到問題 */
+    filter: grayscale(100%) brightness(0.4);
+}
+
+/* =======================
+   COLLAPSE TEXT
+======================= */
+.sidebar.collapsed .text {
+    display: none;
+}
+
+/* =======================
+   MAIN AREA
+======================= */
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* topbar */
+.topbar {
+    background: #ffffff;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: flex-end;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.user {
+    font-weight: 600;
+    color: #111827;
+}
+
+/* content */
+.content {
+    padding: 20px;
+    background: #f5f6f8;
+}
+
+</style>
 </head>
 
-<body class="bg-light">
+<body>
 
-<!-- 導覽列 -->
-<nav class="navbar navbar-dark bg-dark px-3">
-    <a class="navbar-brand" href="/">🚗 公務車系統</a>
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
 
-    <div>
-        <a class="btn btn-outline-light btn-sm" href="/login/">登入</a>
-        <a class="btn btn-warning btn-sm" href="/register/">註冊</a>
-        <a class="btn btn-danger btn-sm" href="/logout/">登出</a>
+    <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
+
+    <div class="menu">
+
+        <a href="/rent/">
+            <img src="{% static 'images/rentCar_icon.png' %}" class="icon-img">
+            <span class="text">借車系統</span>
+        </a>
+
+        <a href="/return/">
+            <img src="{% static 'images/returnCar_icon.png' %}" class="icon-img">
+            <span class="text">還車系統</span>
+        </a>
+
+        <a href="/history/">
+            <img src="{% static 'images/history_icon.png' %}" class="icon-img">
+            <span class="text">歷史紀錄</span>
+        </a>
+
+        <a href="/profile/">
+            <img src="{% static 'images/user_icon.png' %}" class="icon-img">
+            <span class="text">個人資訊</span>
+        </a>
+
     </div>
-</nav>
+</div>
 
-<div class="container mt-4">
+<!-- Main -->
+<div class="main">
 
-    {% block content %}
-    {% endblock %}
+    <div class="topbar">
+        <span class="user">張三 您好</span>
+    </div>
+
+    <div class="content">
+        {% block content %}
+        {% endblock %}
+    </div>
 
 </div>
+
+<script>
+function toggleSidebar(){
+    document.getElementById("sidebar").classList.toggle("collapsed");
+}
+</script>
 
 </body>
 </html>
