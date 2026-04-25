@@ -1,0 +1,21 @@
+<script>
+async function verifyEmail() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get("token");
+
+    if (!token) return;
+
+    const res = await fetch(`/verify_email/?token=${token}`);
+    const data = await res.json();
+
+    console.log(data);
+
+    if (data.status === "success") {
+        window.location.href = data.redirect;
+    } else {
+        alert(data.msg);
+    }
+}
+
+verifyEmail();
+</script>

@@ -1,0 +1,220 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>註冊帳號</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+}
+
+/* ===== 背景（跟登入一致） ===== */
+.hero {
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+
+    background: url("{% static 'images/car_bg.png' %}") no-repeat center center;
+    background-size: cover;
+
+    opacity: 1;
+    z-index: 0;
+}
+
+.hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(255,255,255,0.55);
+    z-index: 1;
+}
+
+/* ===== card（跟登入一致玻璃感） ===== */
+.card {
+    width: 380px;
+    padding: 30px;
+    border-radius: 20px;
+
+    background: rgba(255,255,255,0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+
+    border: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+
+    color: #111;
+
+    position: relative;
+    z-index: 2;
+}
+
+/* 標題 */
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #111;
+}
+
+/* input */
+.input-group {
+    margin-bottom: 15px;
+}
+
+label {
+    font-size: 14px;
+    display: block;
+    margin-bottom: 5px;
+    color: #111;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+
+    border-radius: 10px;
+    border: 1px solid #ddd;
+    outline: none;
+
+    font-size: 15px;
+    box-sizing: border-box;
+}
+
+/* button */
+.btn {
+    width: 100%;
+    padding: 12px;
+
+    border-radius: 10px;
+    border: none;
+
+    background: #1f4ed8;
+    color: white;
+    font-size: 16px;
+
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.btn:hover:enabled {
+    transform: scale(1.03);
+}
+
+/* msg */
+.msg {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+.error { color: #ff4d4d; }
+.success { color: #00aa66; }
+
+/* phone box */
+.phone-box {
+    background: rgba(31,78,216,0.08);
+    padding: 10px;
+    border-radius: 10px;
+    text-align: center;
+    margin-bottom: 15px;
+    font-size: 16px;
+    color: #1f4ed8;
+}
+</style>
+</head>
+
+<body>
+
+<div class="hero">
+
+    <div class="card">
+
+        <h1>建立帳號</h1>
+
+        <div class="phone-box">
+            📱 {{ phone }}
+        </div>
+
+        <form method="post" id="form">
+            {% csrf_token %}
+
+            <div class="input-group">
+                <label>姓名</label>
+                <input name="name" id="name" placeholder="請輸入姓名">
+            </div>
+
+            <div class="input-group">
+                <label>Email</label>
+                <input name="email" id="email" placeholder="example@gmail.com">
+            </div>
+
+            <button class="btn" id="submitBtn" disabled>送出註冊</button>
+        </form>
+
+        <div id="msg" class="msg"></div>
+
+    </div>
+
+</div>
+
+<script>
+const nameInput = document.getElementById("name");
+const emailInput = document.getElementById("email");
+const btn = document.getElementById("submitBtn");
+const msg = document.getElementById("msg");
+
+// validation
+function validate() {
+    const name = nameInput.value.trim();
+    const email = emailInput.value.trim();
+
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+    if (!name) {
+        msg.innerText = "請輸入姓名";
+        msg.className = "msg error";
+        btn.disabled = true;
+        return;
+    }
+
+    if (!emailValid) {
+        msg.innerText = "Email 格式錯誤";
+        msg.className = "msg error";
+        btn.disabled = true;
+        return;
+    }
+
+    msg.innerText = "可以送出 ✅";
+    msg.className = "msg success";
+    btn.disabled = false;
+}
+
+nameInput.addEventListener("input", validate);
+emailInput.addEventListener("input", validate);
+
+document.getElementById("form").addEventListener("submit", function(e){
+    if (btn.disabled) {
+        e.preventDefault();
+    }
+});
+</script>
+
+</body>
+</html>
