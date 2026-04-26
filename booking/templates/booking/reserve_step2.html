@@ -9,69 +9,88 @@
     margin-bottom: 20px;
 }
 
-/* ===== progress ===== */
-.progress-wrapper {
+/* =========================
+   ✅ PROGRESS（統一版）
+========================= */
+
+.progress-wrap {
     display: flex;
     justify-content: center;
-    margin-bottom: 25px;
+    margin: 30px 0;
 }
 
-.step-bar {
-    display: flex;
-    align-items: center;
+.progress-container {
     width: 60%;
-    justify-content: space-between;
+    min-width: 320px;
     position: relative;
 }
 
+/* 灰底線 */
+.progress-bg {
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 999px;
+}
+
+/* 進度 */
+.progress-fill {
+    height: 6px;
+    width: 50%;   /* ⭐ Step2 = 50% */
+    background: #1f4ed8;
+    border-radius: 999px;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* 三個點定位 */
+.steps {
+    position: absolute;
+    top: -14px;
+    left: 0;
+    right: 0;
+}
+
 .step {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    z-index: 2;
+    position: absolute;
+    transform: translateX(-50%);
+    text-align: center;
 }
 
+.step-1 { left: 0%; }
+.step-2 { left: 50%; }
+.step-3 { left: 100%; }
+
+/* 圓圈 */
 .circle {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
-    background: #ddd;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-weight: bold;
+    background: #d1d5db;
     color: white;
+    font-size: 13px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.step.active .circle {
-    background: #1f4ed8;
-}
-
+/* 狀態 */
 .step.done .circle {
-    background: #22c55e;
-}
-
-.step-line {
-    position: absolute;
-    top: 16px;
-    left: 10%;
-    right: 10%;
-    height: 4px;
-    background: #ddd;
-    z-index: 1;
-}
-
-.step-line-fill {
-    position: absolute;
-    top: 16px;
-    left: 10%;
-    height: 4px;
     background: #1f4ed8;
-    width: 50%; /* ⭐ Step2 = 50% */
-    z-index: 1;
 }
 
-/* layout */
+.step small {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #666;
+}
+
+/* =========================
+   layout
+========================= */
+
 .wrapper {
     display: flex;
     gap: 20px;
@@ -107,6 +126,7 @@
     background: white;
 }
 
+/* 現在時間線 */
 #nowLine {
     position: absolute;
     left: 0;
@@ -140,27 +160,31 @@ select {
 
 <h2 class="page-title">📅 車輛預約（{{ car_type }}）</h2>
 
-<!-- ===== 進度條 ===== -->
-<div class="progress-wrapper">
-    <div class="step-bar">
+<!-- ===== Progress（STEP2）===== -->
+<div class="progress-wrap">
+    <div class="progress-container">
 
-        <div class="step done">
-            <div class="circle">1</div>
-            <small>選車型</small>
+        <div class="progress-bg"></div>
+        <div class="progress-fill"></div>
+
+        <div class="steps">
+
+            <div class="step step-1 done">
+                <div class="circle">1</div>
+                <small>選車型</small>
+            </div>
+
+            <div class="step step-2 done">
+                <div class="circle">2</div>
+                <small>選時間</small>
+            </div>
+
+            <div class="step step-3">
+                <div class="circle">3</div>
+                <small>完成</small>
+            </div>
+
         </div>
-
-        <div class="step active">
-            <div class="circle">2</div>
-            <small>選時間</small>
-        </div>
-
-        <div class="step">
-            <div class="circle">3</div>
-            <small>完成</small>
-        </div>
-
-        <div class="step-line"></div>
-        <div class="step-line-fill"></div>
 
     </div>
 </div>
@@ -229,9 +253,19 @@ select {
                 </div>
             </div>
 
-            <button class="btn btn-success w-100">
-                送出預約
-            </button>
+            <div class="d-flex gap-2 mt-3">
+
+                <!-- 返回 step1 -->
+                <a href="{% url 'reserve_step1' %}" class="btn btn-outline-secondary w-50">
+                    ← 上一步
+                </a>
+
+                <!-- 送出 -->
+                <button class="btn btn-success w-50">
+                    送出預約
+                </button>
+
+            </div>
 
         </form>
 
@@ -253,7 +287,6 @@ function updateNowLine() {
     nowLine.style.top = position + "px";
 }
 
-// init
 updateNowLine();
 setInterval(updateNowLine, 60000);
 </script>

@@ -11,7 +11,91 @@
     margin-top: 10px;
 }
 
-/* container */
+/* =========================
+   PROGRESS BAR（新版）
+========================= */
+
+.progress-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 30px 0;
+}
+
+.progress-container {
+    width: 60%;
+    min-width: 320px;
+    position: relative;
+}
+
+/* 灰色底線 */
+.progress-bg {
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 999px;
+}
+
+/* 藍色進度 */
+.progress-fill {
+    height: 6px;
+    width: 0%;   /* ⭐ STEP1 = 0%（只到第一顆） */
+    background: #1f4ed8;
+    border-radius: 999px;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* steps（關鍵：三等分定位） */
+.steps {
+    position: absolute;
+    top: -12px;
+    left: 0;
+    right: 0;
+}
+
+/* 每顆圓點 */
+.step {
+    position: absolute;
+    transform: translateX(-50%);
+    text-align: center;
+}
+
+/* 三個位置 */
+.step-1 { left: 0%; }
+.step-2 { left: 50%; }
+.step-3 { left: 100%; }
+
+/* 圓圈 */
+.circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #d1d5db;
+    color: white;
+    font-size: 12px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* 已完成（藍） */
+.step.done .circle {
+    background: #1f4ed8;
+}
+
+/* 文字 */
+.step small {
+    display: block;
+    margin-top: 5px;
+    font-size: 12px;
+    color: #666;
+}
+
+/* =========================
+   卡片（不動）
+========================= */
+
 .car-wrapper {
     display: flex;
     justify-content: center;
@@ -20,7 +104,6 @@
     margin-top: 40px;
 }
 
-/* card */
 .car-card {
     width: 220px;
     padding: 20px;
@@ -37,108 +120,22 @@
     transition: 0.25s ease;
 }
 
-/* hover effect */
 .car-card:hover {
     transform: translateY(-6px);
     box-shadow: 0 10px 30px rgba(0,0,0,0.15);
 }
 
-/* image */
 .car-img {
     width: 100%;
     height: 140px;
     object-fit: contain;
     margin-bottom: 10px;
 }
-
-/* text */
-.car-card p {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: #333;
-}
-
-/* mobile */
-@media (max-width: 768px) {
-    .car-wrapper {
-        flex-direction: column;
-        align-items: center;
-    }
-}
-
-/* ===== Progress Bar (STEP 1 FIXED) ===== */
-.progress-wrap {
-    display: flex;
-    justify-content: center;
-    margin: 25px 0;
-}
-
-.progress-container {
-    width: 60%;
-    position: relative;
-}
-
-/* background line */
-.progress-bg {
-    height: 10px;
-    background: #e5e7eb;
-    border-radius: 20px;
-}
-
-/* fill line */
-.progress-fill {
-    height: 10px;
-    width: 0%;
-    background: #1f4ed8;
-    border-radius: 20px;
-    position: absolute;
-    top: 0;
-    left: 0;
-}
-
-/* steps */
-.steps {
-    display: flex;
-    justify-content: space-between;
-    position: absolute;
-    width: 100%;
-    top: -14px;
-}
-
-.step {
-    text-align: center;
-}
-
-.circle {
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: auto;
-    font-size: 12px;
-    color: white;
-    background: #ddd;
-}
-
-.step.active .circle {
-    background: #1f4ed8;
-}
-
-.step.done .circle {
-    background: #22c55e;
-}
-
-.step small {
-    font-size: 12px;
-}
 </style>
 
 <h2 class="page-title">🚗 選擇車型</h2>
 
-<!-- ===== 進度條（Step 1）===== -->
+<!-- ===== Progress（STEP1）===== -->
 <div class="progress-wrap">
     <div class="progress-container">
 
@@ -147,17 +144,17 @@
 
         <div class="steps">
 
-            <div class="step active">
+            <div class="step step-1 done">
                 <div class="circle">1</div>
                 <small>選車型</small>
             </div>
 
-            <div class="step">
+            <div class="step step-2">
                 <div class="circle">2</div>
                 <small>選時間</small>
             </div>
 
-            <div class="step">
+            <div class="step step-3">
                 <div class="circle">3</div>
                 <small>完成</small>
             </div>
@@ -172,13 +169,11 @@
 
     <div class="car-wrapper">
 
-        <!-- 4人座 -->
         <button type="submit" name="car_type" value="4人座" class="car-card">
             <img src="{% static 'images/4SeatCar.png' %}" class="car-img">
             <p>4人座</p>
         </button>
 
-        <!-- 10人座 -->
         <button type="submit" name="car_type" value="10人座" class="car-card">
             <img src="{% static 'images/10SeatCar.png' %}" class="car-img">
             <p>10人座</p>
