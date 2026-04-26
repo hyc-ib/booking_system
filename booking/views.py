@@ -1,5 +1,6 @@
 import random
 import re
+from datetime import datetime
 from django.core.cache import cache
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
@@ -10,6 +11,7 @@ from django.shortcuts import render, redirect
 from .models import Car, Reservation, Profile, EmailVerifyToken
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
+from django.db.models import Q
 
 
 # 👉 用記憶體暫存（開發用）
@@ -134,40 +136,99 @@ def check_email_page(request):
 def home(request):
     return render(request, "booking/home.html")
 
+def is_conflict(start1, end1, start2, end2):
+    return not (end1 <= start2 or start1 >= end2)
+
+
 @login_required
 def reserve_step1(request):
+
     if request.method == "POST":
         car_type = request.POST.get("car_type")
+
+        if not car_type:
+            return render(request, "booking/reserve_step1.html", {
+                "error": "請選擇車型"
+            })
+
         request.session["car_type"] = car_type
+
+        request.session.pop("car_id", None)
+        request.session.pop("start_time", None)
+        request.session.pop("end_time", None)
+
         return redirect("reserve_step2")
 
     return render(request, "booking/reserve_step1.html")
 
+
 @login_required
 def reserve_step2(request):
+
     car_type = request.session.get("car_type")
 
     if not car_type:
         return redirect("reserve_step1")
 
-    cars = Car.objects.filter(type=car_type)
+    car_prefix = "4Car" if car_type == "4人座" else "10Car"
+    cars = Car.objects.filter(name__startswith=car_prefix)
 
     if request.method == "POST":
-        car_id = request.POST.get("car")
-        start_time = request.POST.get("start_time")
-        end_time = request.POST.get("end_time")
 
-        request.session["car_id"] = car_id
-        request.session["start_time"] = start_time
-        request.session["end_time"] = end_time
+        start_hour = int(request.POST.get("start_hour"))
+        start_minute = int(request.POST.get("start_minute"))
+        end_hour = int(request.POST.get("end_hour"))
+        end_minute = int(request.POST.get("end_minute"))
+
+        start_time = start_hour * 60 + start_minute
+        end_time = end_hour * 60 + end_minute
+
+        selected_car = None
+
+        for car in cars:
+
+            reservations = Reservation.objects.filter(car=car)
+
+            conflict = False
+
+            for r in reservations:
+                r_start = r.start_time.hour * 60 + r.start_time.minute
+                r_end = r.end_time.hour * 60 + r.end_time.minute
+
+                if is_conflict(start_time, end_time, r_start, r_end):
+                    conflict = True
+                    break
+
+            if not conflict:
+                selected_car = car
+                break
+
+        if not selected_car:
+            return render(request, "booking/reserve_step2.html", {
+                "car_type": car_type,
+                "range_0_24": range(24),
+                "error": "目前無可用車輛"
+            })
+
+        # ✅ 建立 reservation
+        Reservation.objects.create(
+            user=request.user,
+            car=selected_car,
+            start_time=datetime(2026, 1, 1, start_hour, start_minute),
+            end_time=datetime(2026, 1, 1, end_hour, end_minute),
+        )
+
+        request.session["car_id"] = selected_car.id
+        request.session["start_time"] = f"{start_hour:02d}:{start_minute:02d}"
+        request.session["end_time"] = f"{end_hour:02d}:{end_minute:02d}"
 
         return redirect("reserve_success")
 
     return render(request, "booking/reserve_step2.html", {
-        "cars": cars,
         "car_type": car_type,
         "range_0_24": range(24)
     })
+
 
 @login_required
 def reserve_success(request):
@@ -176,10 +237,7 @@ def reserve_success(request):
     start_time = request.session.get("start_time")
     end_time = request.session.get("end_time")
 
-    car = None
-    if car_id:
-        from .models import Car
-        car = Car.objects.filter(id=car_id).first()
+    car = Car.objects.filter(id=car_id).first() if car_id else None
 
     return render(request, "booking/reserve_success.html", {
         "car": car,
