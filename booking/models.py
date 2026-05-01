@@ -44,5 +44,8 @@ class Reservation(models.Model):
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
 
+    is_checked_in = models.BooleanField(default=False)
+    is_returned = models.BooleanField(default=False)
+
     def __str__(self):
         return f"{self.user} - {self.car}"
