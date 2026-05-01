@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% load static %}
+
+{% block content %}
+
+<h2>歷史紀錄</h2>
+
+<table class="table table-bordered mt-3">
+    <thead>
+        <tr>
+            <th>借車日期</th>
+            <th>時間</th>
+            <th>車輛</th>
+            <th>狀態</th>
+        </tr>
+    </thead>
+
+    <tbody>
+    {% for r in reservations %}
+        <tr>
+            <td>{{ r.start_time|date:"Y-m-d" }}</td>
+
+            <td>
+                {{ r.start_time|date:"H:i" }} - 
+                {{ r.end_time|date:"H:i" }}
+            </td>
+
+            <td>{{ r.car.plate }}</td>
+
+            <!-- ⭐ 狀態欄 -->
+            <td>
+                {% if r.status == "pending" %}
+
+                    <!-- pending：顯示 edit icon -->
+                    <a href="{% url 'edit_reservation' r.id %}">
+                        <img src="{% static 'images/edit_icon.png' %}"
+                             style="width:24px; cursor:pointer;">
+                    </a>
+
+                {% elif r.status == "on-going" %}
+                    <span class="text-success fw-bold">尚未還車</span>
+
+                {% elif r.status == "completed" %}
+                    <span class="text-primary fw-bold">已完成</span>
+
+                {% elif r.status == "cancelled" %}
+                    <span class="text-secondary fw-bold">已取消</span>
+
+                {% endif %}
+            </td>
+
+        </tr>
+    {% empty %}
+        <tr>
+            <td colspan="4" class="text-center">
+                目前沒有歷史紀錄
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}
