@@ -1,6 +1,5 @@
 import random
-import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from django.core.cache import cache
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
@@ -11,12 +10,13 @@ from django.shortcuts import render, redirect
 from .models import Car, Reservation, Profile, EmailVerifyToken
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
-from django.db.models import Q
+from django.utils import timezone
 
 
 # 👉 用記憶體暫存（開發用）
 otp_store = {}
 
+# ======= login / register ======
 def login_page(request):
     return render(request, "registration/login.html")
 
@@ -133,12 +133,13 @@ def verify_email(request):
 def check_email_page(request):
     return render(request, "booking/check_email.html")
 
+# ====== home page ======
 def home(request):
     return render(request, "booking/home.html")
 
+# ====== booking page ======
 def is_conflict(start1, end1, start2, end2):
     return not (end1 <= start2 or start1 >= end2)
-
 
 @login_required
 def reserve_step1(request):
@@ -161,7 +162,6 @@ def reserve_step1(request):
 
     return render(request, "booking/reserve_step1.html")
 
-
 @login_required
 def reserve_step2(request):
 
@@ -180,22 +180,43 @@ def reserve_step2(request):
         end_hour = int(request.POST.get("end_hour"))
         end_minute = int(request.POST.get("end_minute"))
 
-        start_time = start_hour * 60 + start_minute
-        end_time = end_hour * 60 + end_minute
+        # ✅ 今天日期（台灣時間）
+        today = timezone.localdate()
+
+        # ✅ 組合完整 datetime（含日期）
+        start_dt = datetime.combine(today, datetime.min.time()).replace(
+            hour=start_hour, minute=start_minute
+        )
+        end_dt = datetime.combine(today, datetime.min.time()).replace(
+            hour=end_hour, minute=end_minute
+        )
+
+        # ✅ 加上時區（非常重要🔥）
+        start_dt = timezone.make_aware(start_dt)
+        end_dt = timezone.make_aware(end_dt)
+
+        # 🚨 防呆：結束時間要大於開始時間
+        if end_dt <= start_dt:
+            return render(request, "booking/reserve_step2.html", {
+                "car_type": car_type,
+                "range_0_24": range(24),
+                "error": "結束時間必須大於開始時間"
+            })
 
         selected_car = None
 
         for car in cars:
 
-            reservations = Reservation.objects.filter(car=car)
+            # ✅ 只抓「同一天」的預約（避免跨天干擾）
+            reservations = Reservation.objects.filter(
+                car=car,
+                start_time__date=today
+            )
 
             conflict = False
 
             for r in reservations:
-                r_start = r.start_time.hour * 60 + r.start_time.minute
-                r_end = r.end_time.hour * 60 + r.end_time.minute
-
-                if is_conflict(start_time, end_time, r_start, r_end):
+                if not (end_dt <= r.start_time or start_dt >= r.end_time):
                     conflict = True
                     break
 
@@ -210,17 +231,17 @@ def reserve_step2(request):
                 "error": "目前無可用車輛"
             })
 
-        # ✅ 建立 reservation
+        # ✅ 建立預約（正確時間🔥）
         Reservation.objects.create(
             user=request.user,
             car=selected_car,
-            start_time=datetime(2026, 1, 1, start_hour, start_minute),
-            end_time=datetime(2026, 1, 1, end_hour, end_minute),
+            start_time=start_dt,
+            end_time=end_dt,
         )
 
         request.session["car_id"] = selected_car.id
-        request.session["start_time"] = f"{start_hour:02d}:{start_minute:02d}"
-        request.session["end_time"] = f"{end_hour:02d}:{end_minute:02d}"
+        request.session["start_time"] = start_dt.strftime("%H:%M")
+        request.session["end_time"] = end_dt.strftime("%H:%M")
 
         return redirect("reserve_success")
 
@@ -228,7 +249,6 @@ def reserve_step2(request):
         "car_type": car_type,
         "range_0_24": range(24)
     })
-
 
 @login_required
 def reserve_success(request):
@@ -243,4 +263,49 @@ def reserve_success(request):
         "car": car,
         "start_time": start_time,
         "end_time": end_time
+    })
+
+# ====== check-in page ======
+@login_required
+def checkin_list(request):
+    today = timezone.now().date()
+    print("123", today)
+
+    # 👉 抓「現在時間內」的預約
+    reservations = Reservation.objects.filter(
+        start_time__date=today,
+        is_checked_in=False
+    )
+
+    if request.method == "POST":
+        selected_ids = request.POST.getlist("selected")
+
+        Reservation.objects.filter(id__in=selected_ids).update(is_checked_in=True)
+
+        return redirect("checkin_list")
+
+    return render(request, "booking/checkin.html", {
+        "reservations": reservations
+    })
+
+# ====== return page ======
+@login_required
+def return_list(request):
+    now = timezone.now()
+
+    # 👉 已報到但還沒還車
+    reservations = Reservation.objects.filter(
+        is_checked_in=True,
+        is_returned=False
+    )
+
+    if request.method == "POST":
+        selected_ids = request.POST.getlist("selected")
+
+        Reservation.objects.filter(id__in=selected_ids).update(is_returned=True)
+
+        return redirect("return_list")
+
+    return render(request, "booking/return.html", {
+        "reservations": reservations
     })
