@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+.page {
+    max-width: 520px;
+    margin: 40px auto;
+}
+
+.row {
+    display: flex;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.label {
+    font-weight: bold;
+    color: #666;
+}
+
+.value {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* input */
+input {
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+}
+
+/* btn group */
+.btn-group {
+    margin-top: 30px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+/* badge */
+.badge-ok {
+    color: green;
+    font-size: 12px;
+}
+
+.badge-no {
+    color: red;
+    font-size: 12px;
+}
+
+/* small button */
+.small-btn {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid #1f4ed8;
+    background: white;
+    color: #1f4ed8;
+    cursor: pointer;
+}
+
+.small-btn.warning {
+    border-color: #f59e0b;
+    color: #f59e0b;
+}
+
+.small-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+</style>
+
+<div class="page">
+
+<h2>個人資料</h2>
+
+<form method="post">
+    {% csrf_token %}
+
+    <!-- 姓名 -->
+    <div class="row">
+        <div class="label">姓名</div>
+        <div class="value">{{ request.user.username }}</div>
+    </div>
+
+    <!-- 手機 -->
+    <div class="row">
+        <div class="label">手機</div>
+        <div class="value">{{ profile.phone }}</div>
+    </div>
+
+    <!-- email -->
+    <div class="row">
+        <div class="label">信箱</div>
+
+        <div class="value">
+
+            <!-- 顯示 -->
+            <span id="emailText">{{ profile.email }}</span>
+
+            <!-- 編輯 -->
+            <input type="email"
+                   name="email"
+                   id="emailInput"
+                   value="{{ profile.email }}"
+                   style="display:none;">
+
+            <!-- 狀態 -->
+            {% if profile.is_email_verified %}
+                <span class="badge-ok">已驗證</span>
+            {% else %}
+                <span class="badge-no">未驗證</span>
+            {% endif %}
+
+            <!-- 修改 -->
+            <button type="button"
+                    id="editBtn"
+                    class="small-btn">
+                修改
+            </button>
+
+            <!-- 驗證（已驗證就禁用） -->
+            <button type="submit"
+                    name="action"
+                    value="verify_email"
+                    id="verifyBtn"
+                    class="small-btn warning"
+                    {% if profile.is_email_verified %}disabled{% endif %}>
+                驗證
+            </button>
+
+        </div>
+    </div>
+
+    <!-- 儲存 -->
+    <div class="btn-group">
+
+        <button type="submit"
+                name="action"
+                value="save"
+                class="btn btn-primary">
+            儲存
+        </button>
+
+    </div>
+
+</form>
+
+</div>
+
+<script>
+const emailText = document.getElementById("emailText");
+const emailInput = document.getElementById("emailInput");
+const editBtn = document.getElementById("editBtn");
+const verifyBtn = document.getElementById("verifyBtn");
+
+let editing = false;
+
+editBtn.addEventListener("click", function () {
+
+    if (!editing) {
+
+        // 進入編輯模式
+        emailText.style.display = "none";
+        emailInput.style.display = "inline-block";
+        emailInput.focus();
+
+        editBtn.innerText = "取消";
+
+        // 只有未驗證才允許操作（DB 控制）
+        if (!verifyBtn.disabled) {
+            verifyBtn.disabled = false;
+        }
+
+        editing = true;
+
+    } else {
+
+        // 回復顯示模式
+        emailText.style.display = "inline-block";
+        emailInput.style.display = "none";
+
+        editBtn.innerText = "修改";
+
+        // 還原值
+        emailInput.value = emailText.innerText;
+
+        // 未驗證才允許驗證
+        if (!{{ profile.is_email_verified|yesno:"true,false" }}) {
+            verifyBtn.disabled = false;
+        }
+
+        editing = false;
+    }
+});
+
+// email 改動時（避免誤驗證）
+emailInput.addEventListener("input", function () {
+    if (emailInput.value !== emailText.innerText) {
+        if (!{{ profile.is_email_verified|yesno:"true,false" }}) {
+            verifyBtn.disabled = false;
+        }
+    } else {
+        verifyBtn.disabled = true;
+    }
+});
+</script>
+
+{% endblock %}
