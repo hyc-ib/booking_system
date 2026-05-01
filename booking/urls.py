@@ -11,4 +11,6 @@ urlpatterns = [
     path('reserve/', views.reserve_step1, name='reserve_step1'),
     path('reserve/time/', views.reserve_step2, name='reserve_step2'),
     path("reserve/success/", views.reserve_success, name="reserve_success"),
+    path('checkin/', views.checkin_list, name='checkin_list'),
+    path('return/', views.return_list, name='return_list'),
 ]
