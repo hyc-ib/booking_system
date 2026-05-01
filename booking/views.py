@@ -6,7 +6,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.http import JsonResponse, HttpResponse
 from django.contrib.auth import login
 from django.contrib.auth.models import User
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from .models import Car, Reservation, Profile, EmailVerifyToken
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
@@ -269,18 +269,17 @@ def reserve_success(request):
 @login_required
 def checkin_list(request):
     today = timezone.now().date()
-    print("123", today)
 
     # 👉 抓「現在時間內」的預約
     reservations = Reservation.objects.filter(
         start_time__date=today,
-        is_checked_in=False
+        status="pending"
     )
 
     if request.method == "POST":
         selected_ids = request.POST.getlist("selected")
 
-        Reservation.objects.filter(id__in=selected_ids).update(is_checked_in=True)
+        Reservation.objects.filter(id__in=selected_ids).update(status="on-going")
 
         return redirect("checkin_list")
 
@@ -291,21 +290,115 @@ def checkin_list(request):
 # ====== return page ======
 @login_required
 def return_list(request):
+
     now = timezone.now()
 
-    # 👉 已報到但還沒還車
     reservations = Reservation.objects.filter(
-        is_checked_in=True,
-        is_returned=False
+        status="on-going"
     )
+
+    enriched = []
+
+    for r in reservations:
+
+        if not r.end_time:
+            continue
+
+        delta = r.end_time - now
+        minutes = int(delta.total_seconds() / 60)
+
+        # 👉 未到時間（剩餘）
+        if minutes >= 0:
+            enriched.append({
+                "obj": r,
+                "status_text": "剩餘",
+                "time_value": minutes
+            })
+
+        # 👉 已逾時
+        else:
+            enriched.append({
+                "obj": r,
+                "status_text": "逾時",
+                "time_value": abs(minutes)
+            })
 
     if request.method == "POST":
         selected_ids = request.POST.getlist("selected")
 
-        Reservation.objects.filter(id__in=selected_ids).update(is_returned=True)
+        Reservation.objects.filter(
+            id__in=selected_ids
+        ).update(status="completed")
 
         return redirect("return_list")
 
     return render(request, "booking/return.html", {
+        "reservations": enriched
+    })
+
+# ====== histiry page ======
+@login_required
+def history_list(request):
+
+    reservations = Reservation.objects.filter(user=request.user).order_by("-start_time")
+
+    return render(request, "booking/history.html", {
         "reservations": reservations
+    })
+
+@login_required
+def edit_reservation(request, reservation_id):
+
+    reservation = get_object_or_404(
+        Reservation, id=reservation_id, user=request.user
+    )
+
+    # ❗只允許未報到修改
+    if reservation.status != "pending":
+        return redirect("history_list")
+
+    if request.method == "POST":
+
+        # 🔴 刪除功能
+        if "delete" in request.POST:
+            reservation.status = "cancelled"
+            reservation.save()
+            return redirect("history_list")
+
+        # 🟢 修改時間
+        start_hour = int(request.POST.get("start_hour"))
+        start_minute = int(request.POST.get("start_minute"))
+        end_hour = int(request.POST.get("end_hour"))
+        end_minute = int(request.POST.get("end_minute"))
+
+        today = timezone.localdate()
+
+        start_dt = datetime.combine(today, datetime.min.time()).replace(
+            hour=start_hour, minute=start_minute
+        )
+        end_dt = datetime.combine(today, datetime.min.time()).replace(
+            hour=end_hour, minute=end_minute
+        )
+
+        start_dt = timezone.make_aware(start_dt)
+        end_dt = timezone.make_aware(end_dt)
+
+        # 防呆
+        if end_dt <= start_dt:
+            return render(request, "booking/edit_reservation.html", {
+                "r": reservation,
+                "range_0_24": range(24),
+                "error": "結束時間必須大於開始時間"
+            })
+
+        # ✅ 更新 DB（直接寫回 SQLite）
+        reservation.start_time = start_dt
+        reservation.end_time = end_dt
+        reservation.save()
+
+        return redirect("history_list")
+
+    return render(request, "booking/edit_reservation.html", {
+        "r": reservation,
+        "range_0_24": range(24)
     })
