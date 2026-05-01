@@ -15,4 +15,5 @@ urlpatterns = [
     path('return/', views.return_list, name='return_list'),
     path('history/', views.history_list, name='history_list'),
     path('edit/<int:reservation_id>/', views.edit_reservation, name='edit_reservation'),
+    path("profile/", views.profile, name="profile"),
 ]
