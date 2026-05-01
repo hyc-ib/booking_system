@@ -402,3 +402,52 @@ def edit_reservation(request, reservation_id):
         "r": reservation,
         "range_0_24": range(24)
     })
+
+# ====== profile page ======
+@login_required
+def profile(request):
+    profile, _ = Profile.objects.get_or_create(user=request.user)
+
+    if request.method == "POST":
+
+        action = request.POST.get("action")
+        new_email = request.POST.get("email")
+
+        # ======================
+        # ① 儲存 email（寫 DB）
+        # ======================
+        if action == "save":
+
+            if new_email and new_email != profile.email:
+                profile.email = new_email
+                profile.is_email_verified = False
+                profile.save()
+
+            return redirect("profile")
+
+        # ======================
+        # ② 驗證 email（寄信）
+        # ======================
+        if action == "verify_email":
+
+            # 用目前 DB email 或 input email
+            target_email = new_email or profile.email
+
+            if target_email:
+
+                token_obj = EmailVerifyToken.objects.create(user=request.user)
+
+                verify_link = f"http://127.0.0.1:8000/check_email/?token={token_obj.token}"
+
+                send_mail(
+                    "請驗證你的信箱",
+                    f"點擊以下連結完成驗證：\n{verify_link}",
+                    None,
+                    [target_email],
+                )
+
+            return redirect("profile")
+
+    return render(request, "user/profile.html", {
+        "profile": profile
+    })
