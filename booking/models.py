@@ -44,8 +44,16 @@ class Reservation(models.Model):
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
 
-    is_checked_in = models.BooleanField(default=False)
-    is_returned = models.BooleanField(default=False)
+    status = models.CharField(
+        max_length=10,
+        choices=[
+            ("on-going", "尚未還車"),
+            ("completed", "已完成"),
+            ("cancelled", "已取消"),
+            ("pending", "未報到"),
+        ],
+        default="pending"
+    )
 
     def __str__(self):
         return f"{self.user} - {self.car}"
