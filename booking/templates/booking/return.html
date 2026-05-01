@@ -14,22 +14,43 @@
                 <th>車輛</th>
                 <th>開始時間</th>
                 <th>結束時間</th>
-                <th>剩餘期間</th>
+                <th>狀態</th>
             </tr>
         </thead>
+
         <tbody>
-            {% for r in reservations %}
+            {% for item in reservations %}
+            {% with r=item.obj %}
+
             <tr>
                 <td>
                     <input type="checkbox" name="selected" value="{{ r.id }}">
                 </td>
+
                 <td>{{ r.car.plate }}</td>
                 <td>{{ r.start_time }}</td>
                 <td>{{ r.end_time }}</td>
+
+                <!-- ⭐ 狀態欄 -->
+                <td>
+                    {% if item.status_text == "剩餘" %}
+                        <span class="text-success fw-bold">
+                            剩餘 {{ item.time_value }} 分鐘
+                        </span>
+                    {% else %}
+                        <span class="text-danger fw-bold">
+                            逾時 {{ item.time_value }} 分鐘
+                        </span>
+                    {% endif %}
+                </td>
             </tr>
+
+            {% endwith %}
             {% empty %}
             <tr>
-                <td colspan="4" class="text-center">目前沒有可還車的紀錄</td>
+                <td colspan="5" class="text-center">
+                    目前沒有可還車的紀錄
+                </td>
             </tr>
             {% endfor %}
         </tbody>
