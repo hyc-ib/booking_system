@@ -13,4 +13,6 @@ urlpatterns = [
     path("reserve/success/", views.reserve_success, name="reserve_success"),
     path('checkin/', views.checkin_list, name='checkin_list'),
     path('return/', views.return_list, name='return_list'),
+    path('history/', views.history_list, name='history_list'),
+    path('edit/<int:reservation_id>/', views.edit_reservation, name='edit_reservation'),
 ]
