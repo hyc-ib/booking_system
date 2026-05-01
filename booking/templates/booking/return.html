@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>車輛還車系統</h2>
+
+<form method="post">
+    {% csrf_token %}
+
+    <table class="table table-bordered mt-3">
+        <thead>
+            <tr>
+                <th>✔</th>
+                <th>車輛</th>
+                <th>開始時間</th>
+                <th>結束時間</th>
+                <th>剩餘期間</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in reservations %}
+            <tr>
+                <td>
+                    <input type="checkbox" name="selected" value="{{ r.id }}">
+                </td>
+                <td>{{ r.car.plate }}</td>
+                <td>{{ r.start_time }}</td>
+                <td>{{ r.end_time }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center">目前沒有可還車的紀錄</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <button type="submit" class="btn btn-success">
+        還車
+    </button>
+
+</form>
+
+{% endblock %}
