@@ -23,6 +23,7 @@ otp_store = {}
 def login_page(request):
     return render(request, "registration/login.html")
 
+
 # 📩 發送 OTP
 def send_otp(request):
     phone = request.POST.get("phone").strip()
@@ -60,8 +61,8 @@ def verify_otp(request):
     except Profile.DoesNotExist:
         request.session["register_phone"] = phone
         return JsonResponse({"status": "need_register"})
-    
-    
+
+
 # 📝 註冊頁
 def register(request):
     phone = request.session.get("register_phone")
@@ -137,16 +138,20 @@ def verify_email(request):
         "redirect": "/reserve/"
     })
 
+
 def check_email_page(request):
     return render(request, "booking/check_email.html")
+
 
 # ====== home page ======
 def home(request):
     return render(request, "booking/home.html")
 
+
 # ====== booking page ======
 def is_conflict(start1, end1, start2, end2):
     return not (end1 <= start2 or start1 >= end2)
+
 
 @login_required
 def reserve_step1(request):
@@ -181,6 +186,7 @@ def reserve_step1(request):
         return redirect("reserve_step2")
 
     return render(request, "booking/reserve_step1.html")
+
 
 @login_required
 def reserve_step2(request):
@@ -324,10 +330,13 @@ def reserve_step2(request):
 
         return redirect("reserve_success")
 
-    return render(request, "booking/reserve_step2.html", {
+    context = {
         "car_type": car_type,
-        "range_0_24": range(now.hour, 24)
-    })
+        "range_0_24": range(now.hour, 24),
+        "minutes": [0, 15, 30, 45]
+    }
+    return render(request, "booking/reserve_step2.html", context)
+
 
 @login_required
 def reserve_success(request):
@@ -344,6 +353,7 @@ def reserve_success(request):
         "end_time": end_time
     })
 
+
 # ====== check-in page ======
 @login_required
 def checkin_list(request):
@@ -358,13 +368,15 @@ def checkin_list(request):
     if request.method == "POST":
         selected_ids = request.POST.getlist("selected")
 
-        Reservation.objects.filter(id__in=selected_ids).update(status="on-going")
+        Reservation.objects.filter(
+            id__in=selected_ids).update(status="on-going")
 
         return redirect("checkin_list")
 
     return render(request, "booking/checkin.html", {
         "reservations": reservations
     })
+
 
 # ====== return page ======
 @login_required
@@ -415,15 +427,18 @@ def return_list(request):
         "reservations": enriched
     })
 
+
 # ====== histiry page ======
 @login_required
 def history_list(request):
 
-    reservations = Reservation.objects.filter(user=request.user).order_by("-start_time")
+    reservations = Reservation.objects.filter(
+        user=request.user).order_by("-start_time")
 
     return render(request, "booking/history.html", {
         "reservations": reservations
     })
+
 
 @login_required
 def edit_reservation(request, reservation_id):
@@ -476,6 +491,7 @@ def edit_reservation(request, reservation_id):
         # 不可早於現在時間
         if start_dt < now:
             return render(request, "booking/edit_reservation.html", {
+                "r": reservation,
                 "start_time": start_time,
                 "end_time": end_time,
                 "range_0_24": range(now.hour, 24),
@@ -486,6 +502,7 @@ def edit_reservation(request, reservation_id):
 
         if end_dt <= start_dt:
             return render(request, "booking/edit_reservation.html", {
+                "r": reservation,
                 "start_time": start_time,
                 "end_time": end_time,
                 "range_0_24": range(now.hour, 24),
@@ -502,12 +519,14 @@ def edit_reservation(request, reservation_id):
         return redirect("history_list")
 
     return render(request, "booking/edit_reservation.html", {
+        "r": reservation,
         "start_time": start_time,
         "end_time": end_time,
         "range_0_24": range(now.hour, 24),
         "minutes": minutes,
         "now": now
     })
+
 
 # ====== profile page ======
 @login_required
