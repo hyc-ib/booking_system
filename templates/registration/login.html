@@ -210,6 +210,12 @@ const policyBox = document.getElementById("policyBox");
 
 let readDone = false;
 
+/* ===== CSRF 初始化（⭐關鍵） ===== */
+fetch('/get-csrf-token/', {
+    method: 'GET',
+    credentials: 'include'
+});
+
 /* ===== modal ===== */
 document.getElementById("privacyLink").onclick = (e)=>{
     e.preventDefault();
@@ -232,7 +238,7 @@ policyBox.addEventListener("scroll", ()=>{
     }
 });
 
-/* ===== OTP FIX（核心） ===== */
+/* ===== OTP ===== */
 function getOTP(){
     return Array.from(otpBoxes).map(b=>b.value).join("");
 }
@@ -299,35 +305,52 @@ function startCountdown(){
     },1000);
 }
 
-/* send OTP */
+/* ===== CSRF helper ===== */
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+/* ===== send OTP ===== */
 sendBtn.onclick=()=>{
     fetch('/send_otp/',{
         method:'POST',
+        credentials: 'include',  // ⭐關鍵
         headers:{
             'Content-Type':'application/x-www-form-urlencoded',
-            'X-CSRFToken':getCookie('csrftoken')
+            'X-CSRFToken': getCookie('csrftoken')
         },
         body:'phone='+phone.value
-    }).then(()=>{
-        msg.innerText="OTP已發送";
+    })
+    .then(res => res.json())
+    .then(data=>{
+        msg.innerText = data.message || "OTP已發送";
         startCountdown();
+    })
+    .catch(()=>{
+        msg.innerText="發送失敗";
+        msg.style.color="red";
     });
 };
 
-/* CSRF */
-function getCookie(name){
-    let v=`; ${document.cookie}`;
-    let p=v.split(`; ${name}=`);
-    if(p.length===2) return p.pop().split(';').shift();
-}
-
+/* ===== verify OTP ===== */
 loginBtn.onclick = () => {
 
-    let otp = "";
-    otpBoxes.forEach(b => otp += b.value);
+    let otp = getOTP();
 
     fetch('/verify_otp/', {
         method: 'POST',
+        credentials: 'include',  // ⭐關鍵
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             'X-CSRFToken': getCookie('csrftoken')
@@ -337,17 +360,12 @@ loginBtn.onclick = () => {
     .then(res => res.json())
     .then(data => {
 
-        // ✅ 登入成功 → 去車輛頁
         if (data.status === "login_success") {
             window.location.href = data.redirect;
         }
-
-        // ✅ 未註冊 → 去註冊頁
         else if (data.status === "need_register") {
             window.location.href = "/register/";
         }
-
-        // ❌ OTP錯誤
         else {
             msg.innerText = "OTP 錯誤";
             msg.style.color = "red";

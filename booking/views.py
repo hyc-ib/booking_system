@@ -11,6 +11,7 @@ from .models import Car, Reservation, Profile, EmailVerifyToken
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
 from django.utils import timezone
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 
 # 👉 用記憶體暫存（開發用）
@@ -30,6 +31,10 @@ def send_otp(request):
     print(f"[OTP] {phone}: {otp}")
 
     return JsonResponse({"status": "ok"})
+
+@ensure_csrf_cookie
+def get_csrf_token(request):
+    return JsonResponse({"message": "CSRF cookie set"})
 
 # 🔐 驗證 OTP
 def verify_otp(request):
