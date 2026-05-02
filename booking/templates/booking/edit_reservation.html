@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<h2>✏️ 修改預約</h2>
+<h2>修改預約</h2>
 
 <form method="post" class="card p-4 mt-3">
     {% csrf_token %}
@@ -23,8 +23,12 @@
         </select>
 
         <select name="start_minute">
-            <option value="0" {% if r.start_time.minute == 0 %}selected{% endif %}>00</option>
-            <option value="30" {% if r.start_time.minute == 30 %}selected{% endif %}>30</option>
+            {% for m in minutes %}
+                <option value="{{ m }}"
+                    {% if r.start_time.minute == m %}selected{% endif %}>
+                    {{ m|stringformat:"02d" }}
+                </option>
+            {% endfor %}
         </select>
     </div>
 
@@ -40,8 +44,12 @@
         </select>
 
         <select name="end_minute">
-            <option value="0" {% if r.end_time.minute == 0 %}selected{% endif %}>00</option>
-            <option value="30" {% if r.end_time.minute == 30 %}selected{% endif %}>30</option>
+            {% for m in minutes %}
+                <option value="{{ m }}"
+                    {% if r.end_time.minute == m %}selected{% endif %}>
+                    {{ m|stringformat:"02d" }}
+                </option>
+            {% endfor %}
         </select>
     </div>
 

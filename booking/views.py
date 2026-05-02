@@ -357,6 +357,8 @@ def edit_reservation(request, reservation_id):
     if reservation.status != "pending":
         return redirect("history_list")
 
+    now = timezone.localtime()  # 🔥 新增
+
     if request.method == "POST":
 
         # 🔴 刪除功能
@@ -383,15 +385,27 @@ def edit_reservation(request, reservation_id):
         start_dt = timezone.make_aware(start_dt)
         end_dt = timezone.make_aware(end_dt)
 
-        # 防呆
+        # 不可早於現在時間
+        if start_dt < now:
+            return render(request, "booking/edit_reservation.html", {
+                "r": reservation,
+                "range_0_24": range(now.hour, 24), 
+                "minutes": [0, 15, 30, 45], 
+                "now": now,
+                "error": "開始時間不能早於現在"
+            })
+
+        # 原本防呆（保留）
         if end_dt <= start_dt:
             return render(request, "booking/edit_reservation.html", {
                 "r": reservation,
-                "range_0_24": range(24),
+                "range_0_24": range(now.hour, 24), 
+                "minutes": [0, 15, 30, 45], 
+                "now": now,
                 "error": "結束時間必須大於開始時間"
             })
 
-        # ✅ 更新 DB（直接寫回 SQLite）
+        # ✅ 更新 DB（保持原本）
         reservation.start_time = start_dt
         reservation.end_time = end_dt
         reservation.save()
@@ -400,7 +414,9 @@ def edit_reservation(request, reservation_id):
 
     return render(request, "booking/edit_reservation.html", {
         "r": reservation,
-        "range_0_24": range(24)
+        "range_0_24": range(now.hour, 24), 
+        "minutes": [0, 15, 30, 45], 
+        "now": now
     })
 
 # ====== profile page ======
