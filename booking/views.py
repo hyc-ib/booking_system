@@ -149,6 +149,19 @@ def is_conflict(start1, end1, start2, end2):
 @login_required
 def reserve_step1(request):
 
+    # 🔥 自動建立車輛（如果不存在）
+    for i in range(1, 7):
+        Car.objects.get_or_create(
+            name=f"4Car_{i}",
+            defaults={"plate": f"4-{i}"}
+        )
+
+    for i in range(1, 5):
+        Car.objects.get_or_create(
+            name=f"10Car_{i}",
+            defaults={"plate": f"10-{i}"}
+        )
+
     if request.method == "POST":
         car_type = request.POST.get("car_type")
 
