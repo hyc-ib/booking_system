@@ -375,7 +375,16 @@ def edit_reservation(request, reservation_id):
     if reservation.status != "pending":
         return redirect("history_list")
 
-    now = timezone.localtime()  # 🔥 新增
+    now = timezone.localtime()
+
+    hour_range = range(0, 24)
+    minutes = [0, 15, 30, 45]
+
+    # 🔥 每次進來都從 DB 重新 normalize（關鍵）
+    reservation.refresh_from_db()
+
+    start_time = timezone.localtime(reservation.start_time)
+    end_time = timezone.localtime(reservation.end_time)
 
     if request.method == "POST":
 
@@ -406,19 +415,20 @@ def edit_reservation(request, reservation_id):
         # 不可早於現在時間
         if start_dt < now:
             return render(request, "booking/edit_reservation.html", {
-                "r": reservation,
-                "range_0_24": range(now.hour, 24), 
-                "minutes": [0, 15, 30, 45], 
+                "start_time": start_time,
+                "end_time": end_time,
+                "range_0_24": range(now.hour, 24),
+                "minutes": minutes,
                 "now": now,
                 "error": "開始時間不能早於現在"
             })
 
-        # 原本防呆（保留）
         if end_dt <= start_dt:
             return render(request, "booking/edit_reservation.html", {
-                "r": reservation,
-                "range_0_24": range(now.hour, 24), 
-                "minutes": [0, 15, 30, 45], 
+                "start_time": start_time,
+                "end_time": end_time,
+                "range_0_24": range(now.hour, 24),
+                "minutes": minutes,
                 "now": now,
                 "error": "結束時間必須大於開始時間"
             })
@@ -431,9 +441,10 @@ def edit_reservation(request, reservation_id):
         return redirect("history_list")
 
     return render(request, "booking/edit_reservation.html", {
-        "r": reservation,
-        "range_0_24": range(now.hour, 24), 
-        "minutes": [0, 15, 30, 45], 
+        "start_time": start_time,
+        "end_time": end_time,
+        "range_0_24": range(now.hour, 24),
+        "minutes": minutes,
         "now": now
     })
 

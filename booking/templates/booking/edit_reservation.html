@@ -16,7 +16,7 @@
 
         <select name="start_hour">
             {% for i in range_0_24 %}
-                <option value="{{ i }}" {% if r.start_time.hour == i %}selected{% endif %}>
+                <option value="{{ i }}" {% if start_time.hour == i %}selected{% endif %}>
                     {{ i }}
                 </option>
             {% endfor %}
@@ -25,7 +25,7 @@
         <select name="start_minute">
             {% for m in minutes %}
                 <option value="{{ m }}"
-                    {% if r.start_time.minute == m %}selected{% endif %}>
+                    {% if start_time.minute == m %}selected{% endif %}>
                     {{ m|stringformat:"02d" }}
                 </option>
             {% endfor %}
@@ -37,7 +37,7 @@
 
         <select name="end_hour">
             {% for i in range_0_24 %}
-                <option value="{{ i }}" {% if r.end_time.hour == i %}selected{% endif %}>
+                <option value="{{ i }}" {% if end_time.hour == i %}selected{% endif %}>
                     {{ i }}
                 </option>
             {% endfor %}
@@ -46,7 +46,7 @@
         <select name="end_minute">
             {% for m in minutes %}
                 <option value="{{ m }}"
-                    {% if r.end_time.minute == m %}selected{% endif %}>
+                    {% if end_time.minute == m %}selected{% endif %}>
                     {{ m|stringformat:"02d" }}
                 </option>
             {% endfor %}
