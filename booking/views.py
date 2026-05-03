@@ -1,5 +1,5 @@
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from django.core.cache import cache
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
@@ -12,6 +12,8 @@ from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
 from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.db import transaction
+from django.db.models import Count
 
 
 # 👉 用記憶體暫存（開發用）
@@ -189,7 +191,13 @@ def reserve_step2(request):
         return redirect("reserve_step1")
 
     car_prefix = "4Car" if car_type == "4人座" else "10Car"
-    cars = Car.objects.filter(name__startswith=car_prefix)
+
+    # ✅ 加入使用次數（避免一直選同一台🔥）
+    cars = Car.objects.filter(name__startswith=car_prefix).annotate(
+        usage_count=Count("reservation")
+    ).order_by("usage_count")
+
+    now = timezone.localtime()
 
     if request.method == "POST":
 
@@ -198,66 +206,119 @@ def reserve_step2(request):
         end_hour = int(request.POST.get("end_hour"))
         end_minute = int(request.POST.get("end_minute"))
 
-        # ✅ 今天日期（台灣時間）
         today = timezone.localdate()
 
-        # ✅ 組合完整 datetime（含日期）
-        start_dt = datetime.combine(today, datetime.min.time()).replace(
+        start_dt = datetime.combine(today, time()).replace(
             hour=start_hour, minute=start_minute
         )
-        end_dt = datetime.combine(today, datetime.min.time()).replace(
+        end_dt = datetime.combine(today, time()).replace(
             hour=end_hour, minute=end_minute
         )
 
-        # ✅ 加上時區（非常重要🔥）
         start_dt = timezone.make_aware(start_dt)
         end_dt = timezone.make_aware(end_dt)
 
-        # 🚨 防呆：結束時間要大於開始時間
         if end_dt <= start_dt:
             return render(request, "booking/reserve_step2.html", {
                 "car_type": car_type,
-                "range_0_24": range(24),
+                "range_0_24": range(now.hour, 24),
                 "error": "結束時間必須大於開始時間"
             })
 
-        selected_car = None
+        duration = end_dt - start_dt
 
+        best_car = None
+        best_score = None
+
+        # ====== 找最佳車（Best Fit + 使用率）======
         for car in cars:
+            # 🚨 先檢查這台車這個時間能不能用（最重要🔥）
+            conflict = Reservation.objects.filter(
+                car=car,
+                start_time__lt=end_dt,
+                end_time__gt=start_dt
+            ).exists()
 
-            # ✅ 只抓「同一天」的預約（避免跨天干擾）
+            if conflict:
+                continue
+
             reservations = Reservation.objects.filter(
                 car=car,
                 start_time__date=today
-            )
+            ).order_by("start_time")
 
-            conflict = False
+            # ===== 找 gaps =====
+            gaps = []
+            prev_end = datetime.combine(today, time(0, 0))
+            prev_end = timezone.make_aware(prev_end)
 
             for r in reservations:
-                if not (end_dt <= r.start_time or start_dt >= r.end_time):
-                    conflict = True
-                    break
+                if r.start_time > prev_end:
+                    gaps.append((prev_end, r.start_time))
+                prev_end = r.end_time
 
-            if not conflict:
-                selected_car = car
-                break
+            day_end = datetime.combine(today, time(23, 59))
+            day_end = timezone.make_aware(day_end)
 
-        if not selected_car:
+            if prev_end < day_end:
+                gaps.append((prev_end, day_end))
+
+            # ===== 找可用 gap =====
+            valid_gaps = []
+            for g_start, g_end in gaps:
+                if (g_end - g_start) >= duration:
+                    valid_gaps.append((g_start, g_end))
+
+            if not valid_gaps:
+                continue
+
+            # 👉 最小 gap（Best Fit）
+            gap_size = min((g_end - g_start) for g_start, g_end in valid_gaps)
+
+            # 👉 加入使用次數懲罰（避免一直選同一台🔥）
+            usage_penalty = timedelta(minutes=5 * reservations.count())
+
+            score = gap_size + usage_penalty
+
+            if best_score is None or score < best_score:
+                best_score = score
+                best_car = car
+
+        if not best_car:
             return render(request, "booking/reserve_step2.html", {
                 "car_type": car_type,
-                "range_0_24": range(24),
+                "range_0_24": range(now.hour, 24),
                 "error": "目前無可用車輛"
             })
 
-        # ✅ 建立預約（正確時間🔥）
-        Reservation.objects.create(
-            user=request.user,
-            car=selected_car,
-            start_time=start_dt,
-            end_time=end_dt,
-        )
+        with transaction.atomic():
 
-        request.session["car_id"] = selected_car.id
+            # 🔥 1. 鎖車（關鍵）
+            car = Car.objects.select_for_update().get(id=best_car.id)
+
+            # 🔥 2. 再檢查衝突
+            conflict = Reservation.objects.filter(
+                car=car,
+                start_time__lt=end_dt,
+                end_time__gt=start_dt
+            ).exists()
+
+            if conflict:
+                return render(request, "booking/reserve_step2.html", {
+                    "car_type": car_type,
+                    "range_0_24": range(now.hour, 24),
+                    "error": "該時段剛被預約，請重新選擇"
+                })
+
+            # 🔥 3. 安全寫入
+            Reservation.objects.create(
+                user=request.user,
+                car=car,
+                start_time=start_dt,
+                end_time=end_dt,
+            )
+
+        request.session["car_id"] = best_car.id
         request.session["start_time"] = start_dt.strftime("%H:%M")
         request.session["end_time"] = end_dt.strftime("%H:%M")
 
@@ -265,7 +326,7 @@ def reserve_step2(request):
 
     return render(request, "booking/reserve_step2.html", {
         "car_type": car_type,
-        "range_0_24": range(24)
+        "range_0_24": range(now.hour, 24)
     })
 
 @login_required
