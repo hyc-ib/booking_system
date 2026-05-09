@@ -21,6 +21,10 @@ otp_store = {}
 
 # ======= login / register ======
 def login_page(request):
+    # 已登入 → 直接進借車頁
+    if request.user.is_authenticated:
+        return redirect("reserve_step1")
+    
     return render(request, "registration/login.html")
 
 
