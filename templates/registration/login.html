@@ -108,40 +108,6 @@ button {
     margin-top: 10px;
     font-size: 14px;
 }
-
-/* modal */
-.modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.4);
-    z-index: 999;
-    justify-content: center;
-    align-items: center;
-}
-
-.modal-content {
-    width: 600px;
-    max-width: 90%;
-    background: white;
-    border-radius: 15px;
-    padding: 20px;
-}
-
-.modal-body {
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.close {
-    float: right;
-    font-size: 20px;
-    cursor: pointer;
-}
-
-label a {
-    color: #1f4ed8;
-}
 </style>
 </head>
 
@@ -154,12 +120,6 @@ label a {
 <div class="card">
 
     <input class="phone" id="phone" placeholder="手機號碼">
-
-    <label>
-        <input type="checkbox" id="agree" disabled>
-        我已閱讀並同意
-        <a href="#" id="privacyLink">隱私權條款</a>
-    </label>
 
     <br><br>
 
@@ -182,60 +142,17 @@ label a {
 
 </div>
 
-<!-- modal -->
-<div id="privacyModal" class="modal">
-    <div class="modal-content">
-        <span id="closeModal" class="close">&times;</span>
-        <h2>隱私權條款</h2>
-
-        <div id="policyBox" class="modal-body">
-            <p>請完整閱讀條款內容...</p>
-            <p>系統僅用於手機驗證</p>
-            <p>不得外流資料</p>
-            <div style="height:200px;"></div>
-        </div>
-    </div>
-</div>
-
 <script>
 const phone = document.getElementById("phone");
-const agree = document.getElementById("agree");
 const sendBtn = document.getElementById("sendBtn");
 const loginBtn = document.getElementById("loginBtn");
 const otpBoxes = document.querySelectorAll(".otp-box");
 const msg = document.getElementById("msg");
 
-const modal = document.getElementById("privacyModal");
-const policyBox = document.getElementById("policyBox");
-
-let readDone = false;
-
 /* ===== CSRF 初始化（⭐關鍵） ===== */
 fetch('/get-csrf-token/', {
     method: 'GET',
     credentials: 'include'
-});
-
-/* ===== modal ===== */
-document.getElementById("privacyLink").onclick = (e)=>{
-    e.preventDefault();
-    modal.style.display="flex";
-};
-
-document.getElementById("closeModal").onclick = ()=>{
-    modal.style.display="none";
-};
-
-window.onclick = (e)=>{
-    if(e.target===modal) modal.style.display="none";
-};
-
-/* 必須滑到底 */
-policyBox.addEventListener("scroll", ()=>{
-    if(policyBox.scrollTop + policyBox.clientHeight >= policyBox.scrollHeight - 5){
-        readDone = true;
-        agree.disabled = false;
-    }
 });
 
 /* ===== OTP ===== */
@@ -281,12 +198,11 @@ otpBoxes[0].addEventListener("paste",(e)=>{
 let timer=null;
 
 function updateSend(){
-    const okPhone = /^09\d{8}$/.test(phone.value);
-    sendBtn.disabled = !(okPhone && agree.checked && readDone);
+    const okPhone = /^09\d{8}$/.test(phone.value.trim());
+    sendBtn.disabled = !okPhone;
 }
 
 phone.addEventListener("input",updateSend);
-agree.addEventListener("change",updateSend);
 
 /* countdown */
 function startCountdown(){
@@ -325,7 +241,7 @@ function getCookie(name) {
 sendBtn.onclick=()=>{
     fetch('/send_otp/',{
         method:'POST',
-        credentials: 'include',  // ⭐關鍵
+        credentials: 'include',
         headers:{
             'Content-Type':'application/x-www-form-urlencoded',
             'X-CSRFToken': getCookie('csrftoken')
@@ -350,7 +266,7 @@ loginBtn.onclick = () => {
 
     fetch('/verify_otp/', {
         method: 'POST',
-        credentials: 'include',  // ⭐關鍵
+        credentials: 'include',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             'X-CSRFToken': getCookie('csrftoken')
