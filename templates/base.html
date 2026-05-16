@@ -140,6 +140,11 @@ body {
 
     <div class="menu">
 
+        <a href="{% url 'home' %}">
+            <img src="{% static 'images/home_icon.png' %}" class="icon-img">
+            <span class="text">首頁</span>
+        </a>
+
         <a href="/reserve/">
             <img src="{% static 'images/rentCar_icon.png' %}" class="icon-img">
             <span class="text">借車系統</span>
@@ -172,7 +177,13 @@ body {
 <div class="main">
 
     <div class="topbar">
-        <span class="user">{{ request.user.username }} 您好</span>
+
+        {% if user.is_authenticated %}
+            <span class="user">{{ request.user.username }} 您好</span>
+        {% else %}
+            <span class="user">您好</span>
+        {% endif %}
+
     </div>
 
     <div class="content">
