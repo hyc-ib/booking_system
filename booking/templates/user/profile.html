@@ -25,7 +25,6 @@
     gap: 10px;
 }
 
-/* input */
 input {
     padding: 6px 10px;
     border: 1px solid #ddd;
@@ -60,6 +59,11 @@ input {
     background: white;
     color: #1f4ed8;
     cursor: pointer;
+    transition: 0.2s;
+}
+
+.small-btn:hover {
+    opacity: 0.85;
 }
 
 .small-btn.warning {
@@ -70,6 +74,29 @@ input {
 .small-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+}
+
+/* logout button */
+.logout-wrapper {
+    margin-top: 35px;
+    display: flex;
+    justify-content: center;
+}
+
+.logout-btn {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.logout-btn:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
 }
 </style>
 
@@ -98,31 +125,26 @@ input {
 
         <div class="value">
 
-            <!-- 顯示 -->
             <span id="emailText">{{ profile.email }}</span>
 
-            <!-- 編輯 -->
             <input type="email"
                    name="email"
                    id="emailInput"
                    value="{{ profile.email }}"
                    style="display:none;">
 
-            <!-- 狀態 -->
             {% if profile.is_email_verified %}
                 <span class="badge-ok">已驗證</span>
             {% else %}
                 <span class="badge-no">未驗證</span>
             {% endif %}
 
-            <!-- 修改 -->
             <button type="button"
                     id="editBtn"
                     class="small-btn">
                 修改
             </button>
 
-            <!-- 驗證（已驗證就禁用） -->
             <button type="submit"
                     name="action"
                     value="verify_email"
@@ -149,6 +171,29 @@ input {
 
 </form>
 
+<!-- ================= 登出 ================= -->
+<div style="margin-top: 30px; display:flex; justify-content:center;">
+
+    <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+
+        <button type="submit"
+                style="
+                    background: #ef4444;
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 6px;
+                    font-size: 14px;
+                    cursor: pointer;
+                ">
+            登出
+        </button>
+
+    </form>
+
+</div>
+
 </div>
 
 <script>
@@ -162,49 +207,27 @@ let editing = false;
 editBtn.addEventListener("click", function () {
 
     if (!editing) {
-
-        // 進入編輯模式
         emailText.style.display = "none";
         emailInput.style.display = "inline-block";
         emailInput.focus();
 
         editBtn.innerText = "取消";
-
-        // 只有未驗證才允許操作（DB 控制）
-        if (!verifyBtn.disabled) {
-            verifyBtn.disabled = false;
-        }
-
         editing = true;
 
     } else {
-
-        // 回復顯示模式
         emailText.style.display = "inline-block";
         emailInput.style.display = "none";
 
         editBtn.innerText = "修改";
-
-        // 還原值
         emailInput.value = emailText.innerText;
-
-        // 未驗證才允許驗證
-        if (!{{ profile.is_email_verified|yesno:"true,false" }}) {
-            verifyBtn.disabled = false;
-        }
 
         editing = false;
     }
 });
 
-// email 改動時（避免誤驗證）
 emailInput.addEventListener("input", function () {
     if (emailInput.value !== emailText.innerText) {
-        if (!{{ profile.is_email_verified|yesno:"true,false" }}) {
-            verifyBtn.disabled = false;
-        }
-    } else {
-        verifyBtn.disabled = true;
+        verifyBtn.disabled = false;
     }
 });
 </script>
