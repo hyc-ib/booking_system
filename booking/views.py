@@ -1,4 +1,4 @@
-import random
+import random, json
 from datetime import datetime, time, timedelta
 from django.core.cache import cache
 from django.contrib.auth.decorators import login_required
@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db import transaction
 from django.db.models import Count
+from django.db.models.functions import TruncMonth
 
 
 # 👉 用記憶體暫存（開發用）
@@ -139,7 +140,7 @@ def verify_email(request):
 
     return JsonResponse({
         "status": "success",
-        "redirect": "/reserve/"
+        "redirect": "/home/"
     })
 
 
@@ -149,7 +150,141 @@ def check_email_page(request):
 
 # ====== home page ======
 def home(request):
-    return render(request, "booking/home.html")
+
+    now = timezone.now()
+
+    start_month = now.replace(
+        day=1,
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0
+    )
+
+    # ================= KPI =================
+
+    total_bookings = Reservation.objects.exclude(
+        status="cancelled"
+    ).count()
+
+    month_bookings = Reservation.objects.filter(
+        start_time__gte=start_month
+    ).exclude(
+        status="cancelled"
+    ).count()
+
+    # ================= 使用中 reservations =================
+
+    active_reservations = Reservation.objects.filter(
+        status="on-going",
+        start_time__lte=now,
+        end_time__gte=now
+    )
+
+    active_bookings = active_reservations.count()
+
+    # ================= 車輛 =================
+
+    total_cars = Car.objects.count()
+
+    busy_cars = Car.objects.filter(
+        reservation__status="on-going",
+        reservation__start_time__lte=now,
+        reservation__end_time__gte=now
+    ).distinct().count()
+
+    available_cars = total_cars - busy_cars
+
+    # ================= 4人座 =================
+
+    car4_total = Car.objects.filter(type="4人座").count()
+
+    car4_busy = Car.objects.filter(
+        type="4人座",
+        reservation__status="on-going",
+        reservation__start_time__lte=now,
+        reservation__end_time__gte=now
+    ).distinct().count()
+
+    car4_available = car4_total - car4_busy
+
+    # ================= 10人座 =================
+
+    car10_total = Car.objects.filter(type="10人座").count()
+
+    car10_busy = Car.objects.filter(
+        type="10人座",
+        reservation__status="on-going",
+        reservation__start_time__lte=now,
+        reservation__end_time__gte=now
+    ).distinct().count()
+
+    car10_available = car10_total - car10_busy
+
+    # ================= Trend (ALL) =================
+    trend_qs = (
+        Reservation.objects
+        .exclude(status="cancelled")
+        .annotate(date=TruncMonth("start_time"))
+        .values("date")
+        .annotate(count=Count("id"))
+        .order_by("date")
+    )
+
+    # ================= Trend (4 / 10 split) =================
+    trend_4 = (
+        Reservation.objects
+        .filter(car__type="4人座")
+        .exclude(status="cancelled")
+        .annotate(date=TruncMonth("start_time"))
+        .values("date")
+        .annotate(count=Count("id"))
+        .order_by("date")
+    )
+
+    trend_10 = (
+        Reservation.objects
+        .filter(car__type="10人座")
+        .exclude(status="cancelled")
+        .annotate(date=TruncMonth("start_time"))
+        .values("date")
+        .annotate(count=Count("id"))
+        .order_by("date")
+    )
+
+    # ================= format =================
+    trend_days = [x["date"].strftime("%Y-%m") for x in trend_qs]
+    trend_all = [x["count"] for x in trend_qs]
+
+    trend4 = [x["count"] for x in trend_4]
+    trend10 = [x["count"] for x in trend_10]
+
+    # ================= render =================
+
+    return render(request, "booking/home.html", {
+
+        # KPI
+        "total_bookings": total_bookings,
+        "month_bookings": month_bookings,
+        "active_bookings": active_bookings,
+
+        # 車輛
+        "available_cars": available_cars,
+
+        # 4人座
+        "car4_available": car4_available,
+        "car4_in_use": car4_busy,
+
+        # 10人座
+        "car10_available": car10_available,
+        "car10_in_use": car10_busy,
+
+        # charts
+        "trend_days": json.dumps(trend_days),
+        "trend_all": json.dumps(trend_all),
+        "trend_4": json.dumps(trend4),
+        "trend_10": json.dumps(trend10),
+    })
 
 
 # ====== booking page ======
@@ -157,7 +292,7 @@ def is_conflict(start1, end1, start2, end2):
     return not (end1 <= start2 or start1 >= end2)
 
 
-@login_required
+@login_required(login_url='login')
 def reserve_step1(request):
 
     # 🔥 自動建立車輛（如果不存在）
@@ -192,7 +327,7 @@ def reserve_step1(request):
     return render(request, "booking/reserve_step1.html")
 
 
-@login_required
+@login_required(login_url='login')
 def reserve_step2(request):
 
     car_type = request.session.get("car_type")
@@ -342,7 +477,7 @@ def reserve_step2(request):
     return render(request, "booking/reserve_step2.html", context)
 
 
-@login_required
+@login_required(login_url='login')
 def reserve_success(request):
 
     car_id = request.session.get("car_id")
@@ -359,7 +494,7 @@ def reserve_success(request):
 
 
 # ====== check-in page ======
-@login_required
+@login_required(login_url='login')
 def checkin_list(request):
     today = timezone.now().date()
 
@@ -383,7 +518,7 @@ def checkin_list(request):
 
 
 # ====== return page ======
-@login_required
+@login_required(login_url='login')
 def return_list(request):
 
     now = timezone.now()
@@ -433,7 +568,7 @@ def return_list(request):
 
 
 # ====== histiry page ======
-@login_required
+@login_required(login_url='login')
 def history_list(request):
 
     reservations = Reservation.objects.filter(
@@ -444,7 +579,7 @@ def history_list(request):
     })
 
 
-@login_required
+@login_required(login_url='login')
 def edit_reservation(request, reservation_id):
 
     reservation = get_object_or_404(
@@ -533,7 +668,7 @@ def edit_reservation(request, reservation_id):
 
 
 # ====== profile page ======
-@login_required
+@login_required(login_url='login')
 def profile(request):
     profile, _ = Profile.objects.get_or_create(user=request.user)
 
