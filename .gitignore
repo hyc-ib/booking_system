@@ -23,13 +23,6 @@ ENV3.11/
 pip-log.txt
 pip-delete-this-directory.txt
 
-*.sqlite3
-db.sqlite3
-
-/static/
-/media/
-staticfiles/
-
 *.log
 
 .env
