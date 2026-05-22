@@ -189,8 +189,6 @@ def home(request):
 
     busy_cars = Car.objects.filter(
         reservation__status="on-going",
-        reservation__start_time__lte=now,
-        reservation__end_time__gte=now
     ).distinct().count()
 
     available_cars = total_cars - busy_cars
@@ -202,8 +200,6 @@ def home(request):
     car4_busy = Car.objects.filter(
         type="4人座",
         reservation__status="on-going",
-        reservation__start_time__lte=now,
-        reservation__end_time__gte=now
     ).distinct().count()
 
     car4_available = car4_total - car4_busy
@@ -215,8 +211,6 @@ def home(request):
     car10_busy = Car.objects.filter(
         type="10人座",
         reservation__status="on-going",
-        reservation__start_time__lte=now,
-        reservation__end_time__gte=now
     ).distinct().count()
 
     car10_available = car10_total - car10_busy
