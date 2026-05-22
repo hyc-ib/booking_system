@@ -289,20 +289,62 @@
 <script>
     function updateNowLine() {
         const nowLine = document.getElementById("nowLine");
-
         const now = new Date();
         const hour = now.getHours();
         const minute = now.getMinutes();
 
         const rowHeight = 50;
-
         const position = (hour + minute / 60) * rowHeight;
 
         nowLine.style.top = position + "px";
     }
 
+    const hourSelect = document.querySelector('select[name="start_hour"]');
+    const minuteSelect = document.querySelector('select[name="start_minute"]');
+
+    function enforce15MinRule() {
+        const now = new Date();
+        const maxTime = new Date(now.getTime() + 15 * 60 * 1000);
+
+        const currentHour = now.getHours();
+        const maxHour = maxTime.getHours();
+
+        if (hourSelect) {
+            Array.from(hourSelect.options).forEach(opt => {
+                if (!opt.value) return;
+                const h = parseInt(opt.value);
+                opt.disabled = (h < currentHour || h > maxHour);
+            });
+        }
+
+        if (hourSelect && minuteSelect) {
+            const selectedHour = parseInt(hourSelect.value);
+            Array.from(minuteSelect.options).forEach(opt => {
+                if (!opt.value) return;
+                const m = parseInt(opt.value);
+
+                if (selectedHour === currentHour) {
+                    opt.disabled = (m < now.getMinutes());
+                } else if (selectedHour === maxHour) {
+                    opt.disabled = (m > maxTime.getMinutes());
+                } else {
+                    opt.disabled = false;
+                }
+            });
+        }
+    }
+
     updateNowLine();
-    setInterval(updateNowLine, 60000);
+    enforce15MinRule();
+
+    if (hourSelect) {
+        hourSelect.addEventListener('change', enforce15MinRule);
+    }
+
+    setInterval(function() {
+        updateNowLine();
+        enforce15MinRule();
+    }, 60000);
 </script>
 
 {% endblock %}
