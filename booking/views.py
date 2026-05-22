@@ -20,6 +20,8 @@ from django.db.models import Count
 otp_store = {}
 
 # ======= login / register ======
+
+
 def login_page(request):
     return render(request, "registration/login.html")
 
@@ -35,11 +37,14 @@ def send_otp(request):
 
     return JsonResponse({"status": "ok"})
 
+
 @ensure_csrf_cookie
 def get_csrf_token(request):
     return JsonResponse({"message": "CSRF cookie set"})
 
 # 🔐 驗證 OTP
+
+
 def verify_otp(request):
     phone = request.POST.get("phone").strip()
     otp = request.POST.get("otp").strip()
@@ -224,6 +229,21 @@ def reserve_step2(request):
         start_dt = timezone.make_aware(start_dt)
         end_dt = timezone.make_aware(end_dt)
 
+        if start_dt < now - timedelta(minutes=2):
+            return render(request, "booking/reserve_step2.html", {
+                "car_type": car_type,
+                "range_0_24": range(now.hour, 24),
+                "error": "不能預約過去的時間"
+            })
+
+        if start_dt > now + timedelta(minutes=15):
+            max_open_time = (now + timedelta(minutes=15)).strftime("%H:%M")
+            return render(request, "booking/reserve_step2.html", {
+                "car_type": car_type,
+                "range_0_24": range(now.hour, 24),
+                "error": f"公務車僅開放使用前 15 分鐘預約。目前僅能預約至 {max_open_time} 之前的車輛。"
+            })
+
         if end_dt <= start_dt:
             return render(request, "booking/reserve_step2.html", {
                 "car_type": car_type,
@@ -357,7 +377,13 @@ def reserve_success(request):
 # ====== check-in page ======
 @login_required
 def checkin_list(request):
+    now = timezone.now()
     today = timezone.now().date()
+
+    Reservation.objects.filter(
+        status="pending",
+        start_time__lt=now - timedelta(minutes=15)
+    ).update(status="cancelled")
 
     # 👉 抓「現在時間內」的預約
     reservations = Reservation.objects.filter(
@@ -381,17 +407,20 @@ def checkin_list(request):
 # ====== return page ======
 @login_required
 def return_list(request):
-
     now = timezone.now()
 
+    Reservation.objects.filter(
+        status="on-going",
+        end_time__lt=now
+    ).update(status="overtime")
+
     reservations = Reservation.objects.filter(
-        status="on-going"
+        status__in=["on-going", "overtime"]
     )
 
     enriched = []
 
     for r in reservations:
-
         if not r.end_time:
             continue
 
@@ -420,7 +449,6 @@ def return_list(request):
         Reservation.objects.filter(
             id__in=selected_ids
         ).update(status="completed")
-
         return redirect("return_list")
 
     return render(request, "booking/return.html", {
