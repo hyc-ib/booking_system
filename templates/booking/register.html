@@ -20,25 +20,12 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-}
 
-.hero::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-
-    background: url("{% static 'images/car_bg.png' %}") no-repeat center center;
-    background-size: cover;
-
-    z-index: 0;
-}
-
-.hero::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: rgba(255,255,255,0.55);
-    z-index: 1;
+    background:
+        radial-gradient(circle at 20% 20%, rgba(99,102,241,0.15), transparent 40%),
+        radial-gradient(circle at 80% 30%, rgba(236,72,153,0.12), transparent 40%),
+        radial-gradient(circle at 50% 80%, rgba(59,130,246,0.10), transparent 45%),
+        #f4f6f9;
 }
 
 /* ===== card ===== */
@@ -185,7 +172,7 @@ input[type="email"] {
         <h1>建立帳號</h1>
 
         <div class="phone-box">
-            📱 {{ phone }}
+             {{ phone }}
         </div>
 
         <form method="post" id="form">
