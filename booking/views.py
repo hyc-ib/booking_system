@@ -1,4 +1,5 @@
-import random, json
+import random
+import json
 from datetime import datetime, time, timedelta
 from django.core.cache import cache
 from django.contrib.auth.decorators import login_required
@@ -21,11 +22,13 @@ from django.db.models.functions import TruncMonth
 otp_store = {}
 
 # ======= login / register ======
+
+
 def login_page(request):
     # 已登入 → 直接進借車頁
     if request.user.is_authenticated:
         return redirect("reserve_step1")
-    
+
     return render(request, "registration/login.html")
 
 
@@ -40,11 +43,14 @@ def send_otp(request):
 
     return JsonResponse({"status": "ok"})
 
+
 @ensure_csrf_cookie
 def get_csrf_token(request):
     return JsonResponse({"message": "CSRF cookie set"})
 
 # 🔐 驗證 OTP
+
+
 def verify_otp(request):
     phone = request.POST.get("phone").strip()
     otp = request.POST.get("otp").strip()
@@ -323,6 +329,11 @@ def reserve_step1(request):
 
 @login_required(login_url='login')
 def reserve_step2(request):
+    db_now = timezone.now()
+    Reservation.objects.filter(
+        status="pending",
+        start_time__lt=db_now - timedelta(minutes=15)
+    ).update(status="cancelled")
 
     car_type = request.session.get("car_type")
 
@@ -330,6 +341,10 @@ def reserve_step2(request):
         return redirect("reserve_step1")
 
     car_prefix = "4Car" if car_type == "4人座" else "10Car"
+
+    cars = Car.objects.filter(name__startswith=car_prefix).annotate(
+        usage_count=Count("reservation")
+    ).order_by("usage_count")
 
     # ✅ 加入使用次數（避免一直選同一台🔥）
     cars = Car.objects.filter(name__startswith=car_prefix).annotate(
@@ -356,6 +371,15 @@ def reserve_step2(request):
 
         start_dt = timezone.make_aware(start_dt)
         end_dt = timezone.make_aware(end_dt)
+
+        if start_dt > now + timedelta(minutes=15):
+            max_open_time = (now + timedelta(minutes=15)).strftime("%H:%M")
+            return render(request, "booking/reserve_step2.html", {
+                "car_type": car_type,
+                "range_0_24": range(now.hour, 24),
+                "minutes": [0, 15, 30, 45],
+                "error": f"不符合借車規定：公務車僅開放使用前 15 分鐘內預約。目前最遠僅能預約至 {max_open_time} 之前的車輛。"
+            })
 
         if end_dt <= start_dt:
             return render(request, "booking/reserve_step2.html", {
@@ -455,6 +479,7 @@ def reserve_step2(request):
                 car=car,
                 start_time=start_dt,
                 end_time=end_dt,
+                status="pending"
             )
 
         request.session["car_id"] = best_car.id
@@ -490,7 +515,13 @@ def reserve_success(request):
 # ====== check-in page ======
 @login_required(login_url='login')
 def checkin_list(request):
-    today = timezone.now().date()
+    db_now = timezone.now()
+    Reservation.objects.filter(
+        status="pending",
+        start_time__lt=db_now - timedelta(minutes=15)
+    ).update(status="cancelled")
+
+    today = timezone.localdate()
 
     # 👉 抓「現在時間內」的預約
     reservations = Reservation.objects.filter(
