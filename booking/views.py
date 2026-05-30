@@ -46,14 +46,11 @@ def send_otp(request):
 
     return JsonResponse({"status": "ok"})
 
-
 @ensure_csrf_cookie
 def get_csrf_token(request):
     return JsonResponse({"message": "CSRF cookie set"})
 
 # 🔐 驗證 OTP
-
-
 def verify_otp(request):
     phone = request.POST.get("phone").strip()
     otp = request.POST.get("otp").strip()
@@ -595,7 +592,7 @@ def return_list(request):
     })
 
 
-# ====== histiry page ======
+# ====== history page ======
 @login_required(login_url='login')
 def history_list(request):
 
@@ -700,6 +697,26 @@ def edit_reservation(request, reservation_id):
 def profile(request):
     profile, _ = Profile.objects.get_or_create(user=request.user)
 
+    now = timezone.now()
+
+    # =========================
+    # ① 未報到（no-show）
+    # =========================
+    no_show_count = Reservation.objects.filter(
+        user=request.user,
+        status="cancelled",
+        start_time__lt=now
+    ).count()
+
+    # =========================
+    # ② 預期還車（使用中 / 未完成）
+    # =========================
+    overdue_return_count = Reservation.objects.filter(
+        user=request.user,
+        status="on-going",
+        end_time__lt=now
+    ).count()
+
     if request.method == "POST":
 
         action = request.POST.get("action")
@@ -741,5 +758,7 @@ def profile(request):
             return redirect("profile")
 
     return render(request, "user/profile.html", {
-        "profile": profile
+        "profile": profile,
+        "no_show_count": no_show_count,
+        "overdue_return_count": overdue_return_count,
     })
