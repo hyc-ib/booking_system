@@ -157,6 +157,22 @@ input {
         </div>
     </div>
 
+    <!-- 使用紀錄統計 -->
+    <div class="row">
+        <div class="label">使用紀錄</div>
+        <div class="value">
+            <span style="color:#ef4444; font-weight:600;">
+                未報到 {{ no_show_count|default:0 }}
+            </span>
+
+            <span style="margin: 0 10px; color:#ddd;">|</span>
+
+            <span style="color:#ef4444; font-weight:600;">
+                逾時未還 {{ overdue_return_count|default:0 }}
+            </span>
+        </div>
+    </div>
+
     <!-- 儲存 -->
     <div class="btn-group">
 
