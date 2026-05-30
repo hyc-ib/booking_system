@@ -21,9 +21,12 @@ from django.db.models.functions import TruncMonth
 # 👉 用記憶體暫存（開發用）
 otp_store = {}
 
+def set_timezone(request):
+    data = json.loads(request.body)
+    request.session['django_timezone'] = data['timezone']
+    return JsonResponse({'status': 'ok'})
+
 # ======= login / register ======
-
-
 def login_page(request):
     # 已登入 → 直接進借車頁
     if request.user.is_authenticated:
