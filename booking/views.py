@@ -709,7 +709,7 @@ def profile(request):
     ).count()
 
     # =========================
-    # ② 預期還車（使用中 / 未完成）
+    # ② 逾期未還（overdue return）
     # =========================
     overdue_return_count = Reservation.objects.filter(
         user=request.user,
@@ -717,28 +717,83 @@ def profile(request):
         end_time__lt=now
     ).count()
 
+    # =========================
+    # ③ 總預約數
+    # =========================
+    total_reservations = Reservation.objects.filter(
+        user=request.user
+    ).count()
+
+    # =========================
+    # ④ 未報到率 (%)
+    # =========================
+    no_show_rate = (
+        round(no_show_count / total_reservations * 100, 1)
+        if total_reservations > 0 else 0
+    )
+
+    # =========================
+    # ⑤ 平均使用時間
+    # =========================
+    from django.db.models import Avg, F, ExpressionWrapper, DurationField
+
+    avg_duration = Reservation.objects.filter(
+        user=request.user,
+        status="completed"
+    ).annotate(
+        duration=ExpressionWrapper(
+            F("end_time") - F("start_time"),
+            output_field=DurationField()
+        )
+    ).aggregate(avg=Avg("duration"))["avg"]
+
+    avg_duration_min = (
+        round(avg_duration.total_seconds() / 60, 1)
+        if avg_duration else 0
+    )
+
+    # =========================
+    # ⑥ 最常使用車型
+    # =========================
+    favorite_car_type = (
+        Reservation.objects
+        .filter(user=request.user)
+        .values("car__type")
+        .annotate(c=Count("id"))
+        .order_by("-c")
+        .first()
+    )
+
+    favorite_car_type = favorite_car_type["car__type"] if favorite_car_type else "-"
+
+    # =========================
+    # ⑦ 信用分數
+    # =========================
+    credit_score = 100
+    credit_score -= no_show_count * 10
+    credit_score -= overdue_return_count * 5
+    credit_score = max(0, min(100, credit_score))
+
+    # =========================
+    # POST
+    # =========================
     if request.method == "POST":
 
         action = request.POST.get("action")
         new_email = request.POST.get("email")
 
-        # ======================
-        # ① 儲存 email（寫 DB）
-        # ======================
-        if action == "save":
-
+        if action == "submit":
+            # ======================
+            # ① 儲存 email（寫 DB）
+            # ======================
             if new_email and new_email != profile.email:
                 profile.email = new_email
                 profile.is_email_verified = False
                 profile.save()
 
-            return redirect("profile")
-
-        # ======================
-        # ② 驗證 email（寄信）
-        # ======================
-        if action == "verify_email":
-
+            # ======================
+            # ② 驗證 email（寄信）
+            # ======================
             # 用目前 DB email 或 input email
             target_email = new_email or profile.email
 
@@ -759,6 +814,12 @@ def profile(request):
 
     return render(request, "user/profile.html", {
         "profile": profile,
+
         "no_show_count": no_show_count,
         "overdue_return_count": overdue_return_count,
+
+        "no_show_rate": no_show_rate,
+        "avg_duration_min": avg_duration_min,
+        "favorite_car_type": favorite_car_type,
+        "credit_score": credit_score,
     })
