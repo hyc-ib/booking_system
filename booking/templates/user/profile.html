@@ -159,6 +159,19 @@ input {
 
 <h2>個人資料</h2>
 
+{% if risk_level == "high_risk" %}
+<div style="background:#fee2e2; color:#b91c1c; padding:10px; border-radius:10px; margin-bottom:15px;">
+    <strong>高風險使用者（請注意）</strong><br>
+    原因：{{ risk_reason }}
+</div>
+
+{% elif risk_level == "warning" %}
+<div style="background:#fef3c7; color:#92400e; padding:10px; border-radius:10px; margin-bottom:15px;">
+    <strong>異常使用行為</strong><br>
+    原因：{{ risk_reason }}
+</div>
+{% endif %}
+
 <form method="post">
     {% csrf_token %}
 
