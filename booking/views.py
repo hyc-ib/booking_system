@@ -396,6 +396,12 @@ def reserve_step2(request):
 
         # ====== 找最佳車（Best Fit + 使用率）======
         for car in cars:
+            unreturned = Reservation.objects.filter(
+                car=car,
+                status="on-going",
+                end_time__lt=now 
+            ).exists()
+            
             # 🚨 先檢查這台車這個時間能不能用（最重要🔥）
             conflict = Reservation.objects.filter(
                 car=car,
@@ -403,7 +409,7 @@ def reserve_step2(request):
                 end_time__gt=start_dt
             ).exists()
 
-            if conflict:
+            if conflict or unreturned:
                 continue
 
             reservations = Reservation.objects.filter(
