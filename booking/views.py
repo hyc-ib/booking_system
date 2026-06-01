@@ -16,6 +16,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db import transaction
 from django.db.models import Count
 from django.db.models.functions import TruncMonth
+from booking.services.risk_engine import detect_user_risk
 
 
 # 👉 用記憶體暫存（開發用）
@@ -775,6 +776,16 @@ def profile(request):
     credit_score = max(0, min(100, credit_score))
 
     # =========================
+    # ⑦ 風險等級
+    # =========================
+    risk_level, risk_flags, risk_reason = detect_user_risk(
+        no_show_count,
+        overdue_return_count,
+        credit_score,
+        avg_duration_min
+    )
+
+    # =========================
     # POST
     # =========================
     if request.method == "POST":
@@ -822,4 +833,8 @@ def profile(request):
         "avg_duration_min": avg_duration_min,
         "favorite_car_type": favorite_car_type,
         "credit_score": credit_score,
+
+        "risk_level": risk_level,
+        "risk_flags": risk_flags,
+        "risk_reason": risk_reason, 
     })
