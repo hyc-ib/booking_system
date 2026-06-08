@@ -46,6 +46,9 @@
 
                 {% elif r.status == "cancelled" %}
                     <span class="text-secondary fw-bold">已取消</span>
+                
+                {% elif r.status == "no-checkIn" %}
+                    <span class="="text-secondary fw-bold">未報到取消</span>
 
                 {% endif %}
             </td>
