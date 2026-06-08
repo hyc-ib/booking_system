@@ -14,7 +14,7 @@ from django.utils.crypto import get_random_string
 from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, Avg, F, ExpressionWrapper, DurationField
 from django.db.models.functions import TruncMonth
 from booking.services.risk_engine import detect_user_risk
 
@@ -295,6 +295,13 @@ def is_conflict(start1, end1, start2, end2):
 
 @login_required(login_url='login')
 def reserve_step1(request):
+    profile = Profile.objects.get(user=request.user)
+
+    if profile.risk_locked_until and profile.risk_locked_until > timezone.localtime():
+        return render(request, "booking/reserve_step1.html", {
+            "blocked": True,
+            "unlock_time": profile.risk_locked_until
+        })
 
     # 🔥 自動建立車輛（如果不存在）
     for i in range(1, 7):
@@ -526,7 +533,7 @@ def checkin_list(request):
     Reservation.objects.filter(
         status="pending",
         start_time__lt=db_now - timedelta(minutes=15)
-    ).update(status="cancelled")
+    ).update(status="no-checkIn")
 
     today = timezone.localdate()
 
@@ -711,7 +718,7 @@ def profile(request):
     # =========================
     no_show_count = Reservation.objects.filter(
         user=request.user,
-        status="cancelled",
+        status="no_checkIn",
         start_time__lt=now
     ).count()
 
@@ -742,8 +749,6 @@ def profile(request):
     # =========================
     # ⑤ 平均使用時間
     # =========================
-    from django.db.models import Avg, F, ExpressionWrapper, DurationField
-
     avg_duration = Reservation.objects.filter(
         user=request.user,
         status="completed"
@@ -784,11 +789,25 @@ def profile(request):
     # =========================
     # ⑦ 風險等級
     # =========================
-    risk_level, risk_flags, risk_reason = detect_user_risk(
+    risk_level, risk_flags, risk_reason, risk_score = detect_user_risk(
         no_show_count,
         overdue_return_count,
         credit_score,
         avg_duration_min
+    )
+
+    profile.refresh_from_db()
+    # 🚨 高風險 → 設定鎖定
+    if risk_level == "high_risk":
+
+        if not profile.risk_locked_until or profile.risk_locked_until < now:
+
+            profile.risk_locked_until = now + timezone.timedelta(days=30)
+            profile.save()
+
+    is_locked = (
+        profile.risk_locked_until is not None and
+        profile.risk_locked_until > now
     )
 
     # =========================
@@ -843,4 +862,7 @@ def profile(request):
         "risk_level": risk_level,
         "risk_flags": risk_flags,
         "risk_reason": risk_reason, 
+        "risk_score": risk_score,
+
+        "is_locked": is_locked,
     })
