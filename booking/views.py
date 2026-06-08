@@ -158,7 +158,7 @@ def check_email_page(request):
 # ====== home page ======
 def home(request):
 
-    now = timezone.now()
+    now = timezone.localtime()
 
     start_month = now.replace(
         day=1,
@@ -337,11 +337,11 @@ def reserve_step1(request):
 
 @login_required(login_url='login')
 def reserve_step2(request):
-    db_now = timezone.now()
+    db_now = timezone.localtime()
     Reservation.objects.filter(
         status="pending",
         start_time__lt=db_now - timedelta(minutes=15)
-    ).update(status="cancelled")
+    ).update(status="no-checkIn")
 
     car_type = request.session.get("car_type")
 
@@ -529,7 +529,7 @@ def reserve_success(request):
 # ====== check-in page ======
 @login_required(login_url='login')
 def checkin_list(request):
-    db_now = timezone.now()
+    db_now = timezone.localtime()
     Reservation.objects.filter(
         status="pending",
         start_time__lt=db_now - timedelta(minutes=15)
@@ -539,6 +539,7 @@ def checkin_list(request):
 
     # 👉 抓「現在時間內」的預約
     reservations = Reservation.objects.filter(
+        user=request.user, 
         start_time__date=today,
         status="pending"
     )
@@ -547,7 +548,10 @@ def checkin_list(request):
         selected_ids = request.POST.getlist("selected")
 
         Reservation.objects.filter(
-            id__in=selected_ids).update(status="on-going")
+            user=request.user, 
+            id__in=selected_ids,
+            status="pending"
+        ).update(status="on-going")
 
         return redirect("checkin_list")
 
@@ -560,9 +564,10 @@ def checkin_list(request):
 @login_required(login_url='login')
 def return_list(request):
 
-    now = timezone.now()
+    now = timezone.localtime()
 
     reservations = Reservation.objects.filter(
+        user=request.user, 
         status="on-going"
     )
 
@@ -596,7 +601,9 @@ def return_list(request):
         selected_ids = request.POST.getlist("selected")
 
         Reservation.objects.filter(
-            id__in=selected_ids
+            user=request.user, 
+            id__in=selected_ids,
+            status="on-going"
         ).update(status="completed")
 
         return redirect("return_list")
@@ -711,14 +718,14 @@ def edit_reservation(request, reservation_id):
 def profile(request):
     profile, _ = Profile.objects.get_or_create(user=request.user)
 
-    now = timezone.now()
+    now = timezone.localtime()
 
     # =========================
     # ① 未報到（no-show）
     # =========================
     no_show_count = Reservation.objects.filter(
         user=request.user,
-        status="no_checkIn",
+        status="no-checkIn",
         start_time__lt=now
     ).count()
 
