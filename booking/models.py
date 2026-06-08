@@ -9,6 +9,7 @@ class Profile(models.Model):
     phone = models.CharField(max_length=20, unique=True)
     email = models.EmailField(unique=True, null=True, blank=True)
     is_email_verified = models.BooleanField(default=False)
+    risk_locked_until = models.DateTimeField(null=True, blank=True)
 
 class EmailVerifyToken(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -50,6 +51,7 @@ class Reservation(models.Model):
             ("on-going", "尚未還車"),
             ("completed", "已完成"),
             ("cancelled", "已取消"),
+            ("no-checkIn", "未報到取消"), 
             ("pending", "未報到"),
         ],
         default="pending"
