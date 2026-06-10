@@ -637,6 +637,11 @@ def return_list(request):
 # ====== history page ======
 @login_required(login_url='login')
 def history_list(request):
+    db_now = timezone.localtime()
+    Reservation.objects.filter(
+        status="pending",
+        start_time__lt=db_now - timedelta(minutes=15)
+    ).update(status="no-checkIn")
 
     reservations = Reservation.objects.filter(
         user=request.user).order_by("-start_time")
@@ -777,68 +782,6 @@ def get_user_stats(user):
         ),
     }
 
-
-# =========================
-# 🔥 風險計算（可重算）
-# =========================
-# def get_user_risk(user, profile):
-
-#     now = timezone.localtime()
-
-#     # =========================
-#     # 風險統計起點
-#     # =========================
-#     if profile.risk_locked_until:
-#         risk_window_start = profile.risk_locked_until
-#     else:
-#         risk_window_start = None
-
-#     # =========================
-#     # 未報到次數
-#     # =========================
-#     no_show_qs = Reservation.objects.filter(
-#         user=user,
-#         status="no-checkIn",
-#         start_time__lt=now
-#     )
-
-#     if risk_window_start:
-#         no_show_qs = no_show_qs.filter(
-#             start_time__gte=risk_window_start
-#         )
-
-#     no_show = no_show_qs.count()
-
-#     # =========================
-#     # 逾期未還次數
-#     # =========================
-#     overdue_qs = Reservation.objects.filter(
-#         user=user,
-#         status="on-going",
-#         end_time__lt=now
-#     )
-
-#     if risk_window_start:
-#         overdue_qs = overdue_qs.filter(
-#             start_time__gte=risk_window_start
-#         )
-
-#     overdue = overdue_qs.count()
-
-#     # =========================
-#     # 信用分數
-#     # =========================
-#     credit_score = 100
-#     credit_score -= no_show * 3
-#     credit_score -= overdue * 2
-
-#     credit_score = max(0, min(100, credit_score))
-
-#     return {
-#         "no_show": no_show,
-#         "overdue": overdue,
-#         "credit_score": credit_score,
-#     }
 
 @login_required(login_url='login')
 def profile(request):
