@@ -10,6 +10,7 @@ class Profile(models.Model):
     email = models.EmailField(unique=True, null=True, blank=True)
     is_email_verified = models.BooleanField(default=False)
     risk_locked_until = models.DateTimeField(null=True, blank=True)
+    risk_reset_at = models.DateTimeField(null=True, blank=True)
 
 class EmailVerifyToken(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
