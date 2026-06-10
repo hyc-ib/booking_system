@@ -23,7 +23,7 @@ def detect_user_risk(no_show_count, overdue_count, credit_score, avg_duration_mi
         risk_reasons.append("信用分數過低")
 
     # 🟡 使用時間異常（短）
-    if avg_duration_min < 5 & avg_duration_min != 0:
+    if avg_duration_min < 5 and avg_duration_min != 0:
         risk_score += 2
         risk_flags.append("short_usage")
         risk_reasons.append("使用時間過短（<5分鐘）")
