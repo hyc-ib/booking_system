@@ -17,6 +17,7 @@ from django.db import transaction
 from django.db.models import Count, Avg, F, ExpressionWrapper, DurationField
 from django.db.models.functions import TruncMonth
 from booking.services.risk_engine import detect_user_risk
+from booking.services.lock_engine import get_user_risk, apply_user_risk_lock, is_user_locked
 
 
 # 👉 用記憶體暫存（開發用）
@@ -296,14 +297,32 @@ def is_conflict(start1, end1, start2, end2):
 @login_required(login_url='login')
 def reserve_step1(request):
     profile = Profile.objects.get(user=request.user)
+    profile.refresh_from_db() 
+    # 🔥 每次進來都重新算 risk
+    risk = get_user_risk(request.user, profile)
 
-    if profile.risk_locked_until and profile.risk_locked_until > timezone.localtime():
+    risk_level, _, _, _ = detect_user_risk(
+        risk["no_show"],
+        risk["overdue"],
+        risk["credit_score"],
+        0
+    )
+
+    # 🔥 統一入口更新 lock
+    apply_user_risk_lock(profile, risk_level)
+    # print("NO SHOW:", risk["no_show"])
+    # print("OVERDUE:", risk["overdue"])
+    # print("RISK LEVEL:", risk_level)
+    # print("RESET AT:", profile.risk_reset_at)
+
+    # 🔥 再檢查 lock
+    if is_user_locked(profile):
         return render(request, "booking/reserve_step1.html", {
             "blocked": True,
             "unlock_time": profile.risk_locked_until
         })
 
-    # 🔥 自動建立車輛（如果不存在）
+    # ================= 車輛初始化 =================
     for i in range(1, 7):
         Car.objects.get_or_create(
             name=f"4Car_{i}",
@@ -316,24 +335,26 @@ def reserve_step1(request):
             defaults={"plate": f"10-{i}"}
         )
 
+    # ================= POST =================
     if request.method == "POST":
         car_type = request.POST.get("car_type")
 
         if not car_type:
             return render(request, "booking/reserve_step1.html", {
-                "error": "請選擇車型"
+                "error": "請選擇車型",
+                "blocked": False
             })
 
         request.session["car_type"] = car_type
-
         request.session.pop("car_id", None)
         request.session.pop("start_time", None)
         request.session.pop("end_time", None)
 
         return redirect("reserve_step2")
 
-    return render(request, "booking/reserve_step1.html")
-
+    return render(request, "booking/reserve_step1.html", {
+        "blocked": False
+    })
 
 @login_required(login_url='login')
 def reserve_step2(request):
@@ -714,109 +735,163 @@ def edit_reservation(request, reservation_id):
 
 
 # ====== profile page ======
+# =========================
+# 📊 使用統計（永遠全歷史）
+# =========================
+def get_user_stats(user):
+    now = timezone.localtime()
+
+    return {
+        "total_reservations": Reservation.objects.filter(user=user).count(),
+
+        "no_show_count": Reservation.objects.filter(
+            user=user,
+            status="no-checkIn"
+        ).count(),
+
+        "overdue_return_count": Reservation.objects.filter(
+            user=user,
+            status="on-going",
+            end_time__lt=now
+        ).count(),
+
+        "avg_duration_min": (
+            Reservation.objects.filter(
+                user=user,
+                status="completed"
+            ).annotate(
+                duration=ExpressionWrapper(
+                    F("end_time") - F("start_time"),
+                    output_field=DurationField()
+                )
+            ).aggregate(avg=Avg("duration"))["avg"]
+        ),
+
+        "favorite_car_type": (
+            Reservation.objects
+            .filter(user=user)
+            .values("car__type")
+            .annotate(c=Count("id"))
+            .order_by("-c")
+            .first()
+        ),
+    }
+
+
+# =========================
+# 🔥 風險計算（可重算）
+# =========================
+# def get_user_risk(user, profile):
+
+#     now = timezone.localtime()
+
+#     # =========================
+#     # 風險統計起點
+#     # =========================
+#     if profile.risk_locked_until:
+#         risk_window_start = profile.risk_locked_until
+#     else:
+#         risk_window_start = None
+
+#     # =========================
+#     # 未報到次數
+#     # =========================
+#     no_show_qs = Reservation.objects.filter(
+#         user=user,
+#         status="no-checkIn",
+#         start_time__lt=now
+#     )
+
+#     if risk_window_start:
+#         no_show_qs = no_show_qs.filter(
+#             start_time__gte=risk_window_start
+#         )
+
+#     no_show = no_show_qs.count()
+
+#     # =========================
+#     # 逾期未還次數
+#     # =========================
+#     overdue_qs = Reservation.objects.filter(
+#         user=user,
+#         status="on-going",
+#         end_time__lt=now
+#     )
+
+#     if risk_window_start:
+#         overdue_qs = overdue_qs.filter(
+#             start_time__gte=risk_window_start
+#         )
+
+#     overdue = overdue_qs.count()
+
+#     # =========================
+#     # 信用分數
+#     # =========================
+#     credit_score = 100
+#     credit_score -= no_show * 3
+#     credit_score -= overdue * 2
+
+#     credit_score = max(0, min(100, credit_score))
+
+#     return {
+#         "no_show": no_show,
+#         "overdue": overdue,
+#         "credit_score": credit_score,
+#     }
+
 @login_required(login_url='login')
 def profile(request):
-    profile, _ = Profile.objects.get_or_create(user=request.user)
+
+    user_profile, _ = Profile.objects.get_or_create(user=request.user)
 
     now = timezone.localtime()
 
     # =========================
-    # ① 未報到（no-show）
+    # 📊 使用統計（全部歷史）
     # =========================
-    no_show_count = Reservation.objects.filter(
-        user=request.user,
-        status="no-checkIn",
-        start_time__lt=now
-    ).count()
+    stats = get_user_stats(request.user)
 
-    # =========================
-    # ② 逾期未還（overdue return）
-    # =========================
-    overdue_return_count = Reservation.objects.filter(
-        user=request.user,
-        status="on-going",
-        end_time__lt=now
-    ).count()
+    no_show_count = stats["no_show_count"]
+    overdue_return_count = stats["overdue_return_count"]
+    total_reservations = stats["total_reservations"]
 
-    # =========================
-    # ③ 總預約數
-    # =========================
-    total_reservations = Reservation.objects.filter(
-        user=request.user
-    ).count()
-
-    # =========================
-    # ④ 未報到率 (%)
-    # =========================
     no_show_rate = (
         round(no_show_count / total_reservations * 100, 1)
         if total_reservations > 0 else 0
     )
 
-    # =========================
-    # ⑤ 平均使用時間
-    # =========================
-    avg_duration = Reservation.objects.filter(
-        user=request.user,
-        status="completed"
-    ).annotate(
-        duration=ExpressionWrapper(
-            F("end_time") - F("start_time"),
-            output_field=DurationField()
-        )
-    ).aggregate(avg=Avg("duration"))["avg"]
-
     avg_duration_min = (
-        round(avg_duration.total_seconds() / 60, 1)
-        if avg_duration else 0
+        round(stats["avg_duration_min"].total_seconds() / 60, 1)
+        if stats["avg_duration_min"] else 0
     )
 
-    # =========================
-    # ⑥ 最常使用車型
-    # =========================
     favorite_car_type = (
-        Reservation.objects
-        .filter(user=request.user)
-        .values("car__type")
-        .annotate(c=Count("id"))
-        .order_by("-c")
-        .first()
+        stats["favorite_car_type"]["car__type"]
+        if stats["favorite_car_type"] else "-"
     )
 
-    favorite_car_type = favorite_car_type["car__type"] if favorite_car_type else "-"
+    # =========================
+    # 🔥 風險計算（重新計算）
+    # =========================
+    risk = get_user_risk(request.user, user_profile)
 
-    # =========================
-    # ⑦ 信用分數
-    # =========================
-    credit_score = 100
-    credit_score -= no_show_count * 10
-    credit_score -= overdue_return_count * 5
-    credit_score = max(0, min(100, credit_score))
+    credit_score = risk["credit_score"]
 
-    # =========================
-    # ⑦ 風險等級
-    # =========================
     risk_level, risk_flags, risk_reason, risk_score = detect_user_risk(
-        no_show_count,
-        overdue_return_count,
+        risk["no_show"],
+        risk["overdue"],
         credit_score,
         avg_duration_min
     )
 
-    profile.refresh_from_db()
-    # 🚨 高風險 → 設定鎖定
-    if risk_level == "high_risk":
+    # =========================
+    # 🔒 鎖定 / 解鎖
+    # =========================
+    user_profile.refresh_from_db()
 
-        if not profile.risk_locked_until or profile.risk_locked_until < now:
-
-            profile.risk_locked_until = now + timezone.timedelta(days=30)
-            profile.save()
-
-    is_locked = (
-        profile.risk_locked_until is not None and
-        profile.risk_locked_until > now
-    )
-
+    apply_user_risk_lock(user_profile, risk_level)
+    is_locked = is_user_locked(user_profile)
     # =========================
     # POST
     # =========================
@@ -841,7 +916,6 @@ def profile(request):
             target_email = new_email or profile.email
 
             if target_email:
-
                 token_obj = EmailVerifyToken.objects.create(user=request.user)
 
                 verify_link = f"http://127.0.0.1:8000/check_email/?token={token_obj.token}"
@@ -856,20 +930,25 @@ def profile(request):
             return redirect("profile")
 
     return render(request, "user/profile.html", {
-        "profile": profile,
 
+        # profile
+        "profile": user_profile,
+
+        # 📊 stats（歷史）
         "no_show_count": no_show_count,
         "overdue_return_count": overdue_return_count,
-
+        "total_reservations": total_reservations,
         "no_show_rate": no_show_rate,
         "avg_duration_min": avg_duration_min,
         "favorite_car_type": favorite_car_type,
-        "credit_score": credit_score,
 
+        # 🔥 risk
+        "credit_score": credit_score,
         "risk_level": risk_level,
         "risk_flags": risk_flags,
-        "risk_reason": risk_reason, 
+        "risk_reason": risk_reason,
         "risk_score": risk_score,
 
+        # lock state
         "is_locked": is_locked,
     })
