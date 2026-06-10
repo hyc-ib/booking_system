@@ -159,10 +159,13 @@ input {
 
 <h2>個人資料</h2>
 
-{% if profile.risk_locked_until and profile.risk_locked_until > now %}
+{% if risk_level == "high_risk" %}
 <div style="background:#fee2e2; color:#b91c1c; padding:10px; border-radius:10px; margin-bottom:15px;">
     高風險鎖定中<br>
-    解鎖時間：{{ profile.risk_locked_until }}
+    解鎖時間：{{ profile.risk_locked_until }}<br>
+
+    風險分數：<strong>{{ risk_score }}</strong><br>
+    原因：{{ risk_reason }}
 </div>
 
 {% elif risk_level == "warning" %}
@@ -173,7 +176,7 @@ input {
     原因：{{ risk_reason }}
 </div>
 
-{% else %}
+{% elif risk_level == "normal" %}
 <div style="background:#ecfdf5; color:#166534; padding:10px; border-radius:10px; margin-bottom:15px;">
     <strong>使用狀態正常</strong><br>
     風險分數：{{ risk_score }}
