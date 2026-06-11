@@ -9,6 +9,7 @@ class Profile(models.Model):
     phone = models.CharField(max_length=20, unique=True)
     email = models.EmailField(unique=True, null=True, blank=True)
     is_email_verified = models.BooleanField(default=False)
+    register_time = models.DateTimeField(null=True, blank=True)
     risk_locked_until = models.DateTimeField(null=True, blank=True)
     risk_reset_at = models.DateTimeField(null=True, blank=True)
 
@@ -43,8 +44,11 @@ class Reservation(models.Model):
     user = models.ForeignKey("auth.User", on_delete=models.CASCADE)
     car = models.ForeignKey(Car, on_delete=models.CASCADE)
 
-    start_time = models.DateTimeField()
-    end_time = models.DateTimeField()
+    start_time = models.DateTimeField(null=True, blank=True)
+    end_time = models.DateTimeField(null=True, blank=True)
+
+    checkIn_time = models.DateTimeField(null=True, blank=True)
+    return_time = models.DateTimeField(null=True, blank=True)
 
     status = models.CharField(
         max_length=10,
