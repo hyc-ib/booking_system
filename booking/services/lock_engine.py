@@ -9,7 +9,7 @@ def get_risk_window_start(profile):
     """
     if profile.risk_reset_at:
         return profile.risk_reset_at
-    return timezone.now() - timedelta(days=3650)  # 10年
+    return profile.register_time
 
 def get_user_risk(user, profile):
     now = timezone.localtime()
