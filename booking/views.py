@@ -79,6 +79,7 @@ def verify_otp(request):
 # 📝 註冊頁
 def register(request):
     phone = request.session.get("register_phone")
+    now = timezone.localtime()
 
     if request.method == "POST":
         name = request.POST.get("name")
@@ -98,7 +99,8 @@ def register(request):
             user=user,
             phone=phone,
             email=email,
-            is_email_verified=False
+            is_email_verified=False, 
+            register_time=now
         )
 
         token_obj = EmailVerifyToken.objects.create(user=user)
@@ -572,7 +574,7 @@ def checkin_list(request):
             user=request.user, 
             id__in=selected_ids,
             status="pending"
-        ).update(status="on-going")
+        ).update(status="on-going", checkIn_time=db_now)
 
         return redirect("checkin_list")
 
@@ -625,7 +627,7 @@ def return_list(request):
             user=request.user, 
             id__in=selected_ids,
             status="on-going"
-        ).update(status="completed")
+        ).update(status="completed", return_time=now)
 
         return redirect("return_list")
 
@@ -766,7 +768,7 @@ def get_user_stats(user):
                 status="completed"
             ).annotate(
                 duration=ExpressionWrapper(
-                    F("end_time") - F("start_time"),
+                    F("return_time") - F("checkIn_time"),
                     output_field=DurationField()
                 )
             ).aggregate(avg=Avg("duration"))["avg"]
