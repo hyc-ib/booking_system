@@ -1,3 +1,108 @@
+from datetime import datetime, timedelta
+from django.utils import timezone
+from booking.models import Reservation
+from django.db.models import Count, Avg, F, ExpressionWrapper, DurationField
+
+def get_user_stats(user):
+    # =========================
+    # 📊 使用統計（永遠全歷史）
+    # =========================
+    now = timezone.localtime()
+
+    # =========================
+    # 未報到
+    # =========================
+    no_show_cnt = Reservation.objects.filter(
+        user=user,
+        status="no-checkIn"
+    ).count()
+    
+    # =========================
+    # 逾期未還
+    # =========================
+    overdue_return_cnt = Reservation.objects.filter(
+        user=user,
+        status="on-going",
+        end_time__lt=now
+    ).count()
+
+    
+    # =========================
+    # credit score
+    # =========================
+    credit_score = 100 - no_show_cnt * 3 - overdue_return_cnt * 2
+    credit_score = max(0, min(100, credit_score))
+
+    return {
+        "total_reservations": Reservation.objects.filter(user=user).count(),
+
+        "no_show_count": no_show_cnt,
+
+        "overdue_return_count": overdue_return_cnt,
+        
+        "credit_score": credit_score,
+
+        "avg_duration_min": (
+            Reservation.objects.filter(
+                user=user,
+                status="completed"
+            ).annotate(
+                duration=ExpressionWrapper(
+                    F("return_time") - F("checkIn_time"),
+                    output_field=DurationField()
+                )
+            ).aggregate(avg=Avg("duration"))["avg"]
+        ),
+
+        "favorite_car_type": (
+            Reservation.objects
+            .filter(user=user)
+            .values("car__type")
+            .annotate(c=Count("id"))
+            .order_by("-c")
+            .first()
+        ),
+    }
+
+def get_risk_window_start(profile):
+    """
+    🔥 風險計算起點
+    解鎖後才重新開始算
+    """
+    if profile.risk_reset_at:
+        return profile.risk_reset_at
+    return profile.register_time
+
+def get_user_risk(user, profile):
+    now = timezone.localtime()
+    start = get_risk_window_start(profile)
+
+    # =========================
+    # 未報到
+    # =========================
+    no_show = Reservation.objects.filter(
+        user=user,
+        status="no-checkIn",
+        start_time__gte=start,
+        start_time__lt=now
+    ).count()
+
+    # =========================
+    # 逾期未還
+    # =========================
+    overdue = Reservation.objects.filter(
+        user=user,
+        status="on-going",
+        end_time__lt=now,
+        start_time__gte=start
+    ).count()
+
+
+    return {
+        "no_show": no_show,
+        "overdue": overdue,
+    }
+
 def detect_user_risk(no_show_count, overdue_count, credit_score, avg_duration_min):
 
     risk_score = 0
@@ -24,13 +129,13 @@ def detect_user_risk(no_show_count, overdue_count, credit_score, avg_duration_mi
 
     # 🟡 使用時間異常（短）
     if avg_duration_min < 5 and avg_duration_min != 0:
-        risk_score += 2
+        risk_score += 1
         risk_flags.append("short_usage")
         risk_reasons.append("使用時間過短（<5分鐘）")
 
     # 🟡 使用時間異常（長）
     if avg_duration_min > 300:
-        risk_score += 2
+        risk_score += 1
         risk_flags.append("long_usage")
         risk_reasons.append("使用時間過長（>5小時）")
 
