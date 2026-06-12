@@ -301,12 +301,13 @@ def reserve_step1(request):
     profile = Profile.objects.get(user=request.user)
     profile.refresh_from_db() 
     # 🔥 每次進來都重新算 risk
+    stat = get_user_stats(request.user)
     risk = get_user_risk(request.user, profile)
 
     risk_level, _, _, _ = detect_user_risk(
         risk["no_show"],
         risk["overdue"],
-        risk["credit_score"],
+        stat["credit_score"],
         0
     )
 
