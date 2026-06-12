@@ -16,8 +16,8 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db import transaction
 from django.db.models import Count, Avg, F, ExpressionWrapper, DurationField
 from django.db.models.functions import TruncMonth
-from booking.services.risk_engine import detect_user_risk
-from booking.services.lock_engine import get_user_risk, apply_user_risk_lock, is_user_locked
+from booking.services.risk_engine import get_user_stats, get_user_risk, detect_user_risk
+from booking.services.lock_engine import apply_user_risk_lock, is_user_locked
 
 
 # 👉 用記憶體暫存（開發用）
@@ -742,47 +742,7 @@ def edit_reservation(request, reservation_id):
 
 
 # ====== profile page ======
-# =========================
-# 📊 使用統計（永遠全歷史）
-# =========================
-def get_user_stats(user):
-    now = timezone.localtime()
 
-    return {
-        "total_reservations": Reservation.objects.filter(user=user).count(),
-
-        "no_show_count": Reservation.objects.filter(
-            user=user,
-            status="no-checkIn"
-        ).count(),
-
-        "overdue_return_count": Reservation.objects.filter(
-            user=user,
-            status="on-going",
-            end_time__lt=now
-        ).count(),
-
-        "avg_duration_min": (
-            Reservation.objects.filter(
-                user=user,
-                status="completed"
-            ).annotate(
-                duration=ExpressionWrapper(
-                    F("return_time") - F("checkIn_time"),
-                    output_field=DurationField()
-                )
-            ).aggregate(avg=Avg("duration"))["avg"]
-        ),
-
-        "favorite_car_type": (
-            Reservation.objects
-            .filter(user=user)
-            .values("car__type")
-            .annotate(c=Count("id"))
-            .order_by("-c")
-            .first()
-        ),
-    }
 
 
 @login_required(login_url='login')
@@ -800,6 +760,7 @@ def profile(request):
     no_show_count = stats["no_show_count"]
     overdue_return_count = stats["overdue_return_count"]
     total_reservations = stats["total_reservations"]
+    credit_score = stats["credit_score"]
 
     no_show_rate = (
         round(no_show_count / total_reservations * 100, 1)
@@ -820,8 +781,6 @@ def profile(request):
     # 🔥 風險計算（重新計算）
     # =========================
     risk = get_user_risk(request.user, user_profile)
-
-    credit_score = risk["credit_score"]
 
     risk_level, risk_flags, risk_reason, risk_score = detect_user_risk(
         risk["no_show"],
