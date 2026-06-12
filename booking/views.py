@@ -23,6 +23,7 @@ from booking.services.lock_engine import apply_user_risk_lock, is_user_locked
 # 👉 用記憶體暫存（開發用）
 otp_store = {}
 
+
 def set_timezone(request):
     data = json.loads(request.body)
     request.session['django_timezone'] = data['timezone']
@@ -48,9 +49,11 @@ def send_otp(request):
 
     return JsonResponse({"status": "ok"})
 
+
 @ensure_csrf_cookie
 def get_csrf_token(request):
     return JsonResponse({"message": "CSRF cookie set"})
+
 
 # 🔐 驗證 OTP
 def verify_otp(request):
@@ -99,7 +102,7 @@ def register(request):
             user=user,
             phone=phone,
             email=email,
-            is_email_verified=False, 
+            is_email_verified=False,
             register_time=now
         )
 
@@ -172,7 +175,6 @@ def home(request):
     )
 
     # ================= KPI =================
-
     total_bookings = Reservation.objects.exclude(
         status="cancelled"
     ).count()
@@ -184,7 +186,6 @@ def home(request):
     ).count()
 
     # ================= 使用中 reservations =================
-
     active_reservations = Reservation.objects.filter(
         status="on-going",
         start_time__lte=now,
@@ -194,7 +195,6 @@ def home(request):
     active_bookings = active_reservations.count()
 
     # ================= 車輛 =================
-
     total_cars = Car.objects.count()
 
     busy_cars = Car.objects.filter(
@@ -204,7 +204,6 @@ def home(request):
     available_cars = total_cars - busy_cars
 
     # ================= 4人座 =================
-
     car4_total = Car.objects.filter(type="4人座").count()
 
     car4_busy = Car.objects.filter(
@@ -215,7 +214,6 @@ def home(request):
     car4_available = car4_total - car4_busy
 
     # ================= 10人座 =================
-
     car10_total = Car.objects.filter(type="10人座").count()
 
     car10_busy = Car.objects.filter(
@@ -264,7 +262,6 @@ def home(request):
     trend10 = [x["count"] for x in trend_10]
 
     # ================= render =================
-
     return render(request, "booking/home.html", {
 
         # KPI
@@ -299,7 +296,7 @@ def is_conflict(start1, end1, start2, end2):
 @login_required(login_url='login')
 def reserve_step1(request):
     profile = Profile.objects.get(user=request.user)
-    profile.refresh_from_db() 
+    profile.refresh_from_db()
     # 🔥 每次進來都重新算 risk
     stat = get_user_stats(request.user)
     risk = get_user_risk(request.user, profile)
@@ -358,6 +355,7 @@ def reserve_step1(request):
     return render(request, "booking/reserve_step1.html", {
         "blocked": False
     })
+
 
 @login_required(login_url='login')
 def reserve_step2(request):
@@ -430,9 +428,9 @@ def reserve_step2(request):
             unreturned = Reservation.objects.filter(
                 car=car,
                 status="on-going",
-                end_time__lt=now 
+                end_time__lt=now
             ).exists()
-            
+
             # 🚨 先檢查這台車這個時間能不能用（最重要🔥）
             conflict = Reservation.objects.filter(
                 car=car,
@@ -563,7 +561,7 @@ def checkin_list(request):
 
     # 👉 抓「現在時間內」的預約
     reservations = Reservation.objects.filter(
-        user=request.user, 
+        user=request.user,
         start_time__date=today,
         status="pending"
     )
@@ -572,7 +570,7 @@ def checkin_list(request):
         selected_ids = request.POST.getlist("selected")
 
         Reservation.objects.filter(
-            user=request.user, 
+            user=request.user,
             id__in=selected_ids,
             status="pending"
         ).update(status="on-going", checkIn_time=db_now)
@@ -591,7 +589,7 @@ def return_list(request):
     now = timezone.localtime()
 
     reservations = Reservation.objects.filter(
-        user=request.user, 
+        user=request.user,
         status="on-going"
     )
 
@@ -625,7 +623,7 @@ def return_list(request):
         selected_ids = request.POST.getlist("selected")
 
         Reservation.objects.filter(
-            user=request.user, 
+            user=request.user,
             id__in=selected_ids,
             status="on-going"
         ).update(status="completed", return_time=now)
@@ -703,7 +701,7 @@ def edit_reservation(request, reservation_id):
         end_dt = timezone.make_aware(end_dt)
 
         # 不可早於現在時間
-        if start_dt < now:
+        if start_dt < now - timedelta(minutes=1):
             return render(request, "booking/edit_reservation.html", {
                 "r": reservation,
                 "start_time": start_time,
@@ -712,6 +710,18 @@ def edit_reservation(request, reservation_id):
                 "minutes": minutes,
                 "now": now,
                 "error": "開始時間不能早於現在"
+            })
+
+        if start_dt > now + timedelta(minutes=15):
+            max_open_time = (now + timedelta(minutes=15)).strftime("%H:%M")
+            return render(request, "booking/edit_reservation.html", {
+                "r": reservation,
+                "start_time": start_time,
+                "end_time": end_time,
+                "range_0_24": range(now.hour, 24),
+                "minutes": minutes,
+                "now": now,
+                "error": f"目前最遠僅能修改至 {max_open_time} 之前的時間"
             })
 
         if end_dt <= start_dt:
@@ -743,9 +753,6 @@ def edit_reservation(request, reservation_id):
 
 
 # ====== profile page ======
-
-
-
 @login_required(login_url='login')
 def profile(request):
 
