@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+
+<!-- ============ CDN ============ -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+    background: #f4f6fb;
+}
+
+/* ================= KPI ================= */
+.kpi-card {
+    background: white;
+    border-radius: 18px;
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.04);
+    transition: 0.25s;
+}
+
+.kpi-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 14px 30px rgba(0,0,0,0.10);
+}
+
+.kpi-title {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.kpi-number {
+    font-size: 34px;
+    font-weight: 700;
+    color: #111827;
+    margin-top: 6px;
+}
+
+/* ================= VEHICLE ================= */
+.vehicle-card {
+    background: white;
+    border-radius: 18px;
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.04);
+    transition: 0.25s;
+}
+
+.vehicle-card:hover {
+    transform: translateY(-5px);
+}
+
+.status {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-green {
+    background: #dcfce7;
+    color: #16a34a;
+}
+
+.status-red {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+/* ================= LOGS ================= */
+.log-box {
+    background: white;
+    border-radius: 18px;
+    padding: 18px;
+    border: 1px solid rgba(0,0,0,0.04);
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+/* ================= SECTION ================= */
+.section-title {
+    margin: 30px 0 15px;
+    font-weight: 600;
+    color: #374151;
+}
+</style>
+
+<div class="container-fluid p-4">
+
+<!-- ================= KPI ================= -->
+<div class="row g-3">
+
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-title">Total Bookings</div>
+            <div class="kpi-number counter" data-target="{{ total_bookings }}">0</div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-title">This Month</div>
+            <div class="kpi-number counter" data-target="{{ month_bookings }}">0</div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-title">Active Booking</div>
+            <div class="kpi-number counter" data-target="{{ active_bookings }}">0</div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-title">Available Cars</div>
+            <div class="kpi-number counter" data-target="{{ available_cars }}">0</div>
+        </div>
+    </div>
+
+</div>
+
+
+<!-- ================= VEHICLES ================= -->
+<div class="section-title">當前車輛使用狀態</div>
+
+<div class="row g-3">
+
+    <div class="col-md-6">
+        <div class="vehicle-card">
+
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+
+                <div style="display:flex; align-items:center; gap:10px;">
+
+                    <img src="{% static 'images/4SeatCar.png' %}"
+                        style="width:40px; height:40px; object-fit:contain;">
+
+                    <h5 style="margin:0;">4人座車</h5>
+
+                </div>
+
+                <span class="status {% if car4_available > 0 %}status-green{% else %}status-red{% endif %}">
+                    {% if car4_available > 0 %}AVAILABLE{% else %}FULL{% endif %}
+                </span>
+
+            </div>
+
+            <div style="margin-top:15px;">
+                <div style="color:#6b7280;">Available</div>
+                <div style="font-size:30px; font-weight:700;">{{ car4_available }}</div>
+                <div style="color:#9ca3af;">In use: {{ car4_in_use }}</div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="vehicle-card">
+
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+
+                <div style="display:flex; align-items:center; gap:10px;">
+
+                    <img src="{% static 'images/10SeatCar.png' %}"
+                        style="width:40px; height:40px; object-fit:contain;">
+
+                    <h5 style="margin:0;">10人座車</h5>
+
+                </div>
+
+                <span class="status {% if car10_available > 0 %}status-green{% else %}status-red{% endif %}">
+                    {% if car10_available > 0 %}AVAILABLE{% else %}FULL{% endif %}
+                </span>
+
+            </div>
+
+            <div style="margin-top:15px;">
+                <div style="color:#6b7280;">Available</div>
+                <div style="font-size:30px; font-weight:700;">{{ car10_available }}</div>
+                <div style="color:#9ca3af;">In use: {{ car10_in_use }}</div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+
+<!-- ================= CHART + LOGS ================= -->
+<div class="section-title">使用趨勢 & 紀錄</div>
+
+<div class="row g-3">
+
+    <!-- ================= Chart ================= -->
+    <div class="col-md-8">
+        <div class="vehicle-card" style="padding:20px;">
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h6 style="margin:0;">Booking Trend</h6>
+            </div>
+
+            <canvas id="trendChart" height="120"></canvas>
+
+        </div>
+    </div>
+
+</div>
+
+</div>
+
+<!-- ================= SCRIPTS ================= -->
+<script>
+/* ===== KPI COUNT UP ===== */
+document.querySelectorAll('.counter').forEach(el => {
+    let target = +el.dataset.target || 0;
+    let count = 0;
+    let step = Math.max(1, Math.ceil(target / 40));
+
+    let timer = setInterval(() => {
+        count += step;
+        if (count >= target) {
+            el.innerText = target;
+            clearInterval(timer);
+        } else {
+            el.innerText = count;
+        }
+    }, 20);
+});
+
+/* ===== SAFE JSON PARSE ===== */
+const days = JSON.parse('{{ trend_days|escapejs }}' || '[]');
+const all = JSON.parse('{{ trend_all|escapejs }}' || '[]');
+const car4 = JSON.parse('{{ trend_4|escapejs }}' || '[]');
+const car10 = JSON.parse('{{ trend_10|escapejs }}' || '[]');
+
+/* debug */
+console.log("days:", days);
+console.log("all:", all);
+
+if (!days.length) {
+    console.warn("No chart data");
+}
+
+/* ===== CHART ===== */
+const ctx = document.getElementById('trendChart');
+
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: days,
+        datasets: [
+            {
+                label: "All",
+                data: all,
+                borderWidth: 2,
+                tension: 0.3
+            },
+            {
+                label: "4人座",
+                data: car4,
+                borderWidth: 2,
+                tension: 0.3
+            },
+            {
+                label: "10人座",
+                data: car10,
+                borderWidth: 2,
+                tension: 0.3
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        interaction: {
+            mode: 'index',
+            intersect: false
+        },
+
+        plugins: {
+            legend: {
+                display: true
+            }
+        },
+
+        scales: {
+
+            /* ================= X AXIS ================= */
+            x: {
+                title: {
+                    display: true,
+                    text: "Month"
+                },
+                ticks: {
+                    maxRotation: 0,
+                    autoSkip: true,
+                    maxTicksLimit: 12
+                }
+            },
+
+            /* ================= Y AXIS ================= */
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    precision: 0
+                }, 
+                title: {
+                    display: true,
+                    text: "Bookings"
+                }
+            }
+        }
+    }
+});
+</script>
+
+{% endblock %}

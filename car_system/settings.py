@@ -48,6 +48,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'car_system.middleware.TimezoneMiddleware',
 ]
 
 ROOT_URLCONF = 'car_system.urls'
@@ -135,3 +137,6 @@ CACHES = {
 }
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+SESSION_COOKIE_AGE = 60 * 30
+SESSION_SAVE_EVERY_REQUEST = True

@@ -2,163 +2,172 @@
 {% block content %}
 
 <style>
-.page-title {
-    text-align: center;
-    font-size: 22px;
-    font-weight: bold;
-    margin-bottom: 20px;
-}
+    .page-title {
+        text-align: center;
+        font-size: 22px;
+        font-weight: bold;
+        margin-bottom: 20px;
+    }
 
-/* =========================
+    /* =========================
    ✅ PROGRESS（統一版）
 ========================= */
 
-.progress-wrap {
-    display: flex;
-    justify-content: center;
-    margin: 30px 0;
-}
+    .progress-wrap {
+        display: flex;
+        justify-content: center;
+        margin: 30px 0;
+    }
 
-.progress-container {
-    width: 60%;
-    min-width: 320px;
-    position: relative;
-}
+    .progress-container {
+        width: 60%;
+        min-width: 320px;
+        position: relative;
+    }
 
-/* 灰底線 */
-.progress-bg {
-    height: 6px;
-    background: #e5e7eb;
-    border-radius: 999px;
-}
+    /* 灰底線 */
+    .progress-bg {
+        height: 6px;
+        background: #e5e7eb;
+        border-radius: 999px;
+    }
 
-/* 進度 */
-.progress-fill {
-    height: 6px;
-    width: 50%;   /* ⭐ Step2 = 50% */
-    background: #1f4ed8;
-    border-radius: 999px;
-    position: absolute;
-    top: 0;
-    left: 0;
-}
+    /* 進度 */
+    .progress-fill {
+        height: 6px;
+        width: 50%;
+        /* ⭐ Step2 = 50% */
+        background: #1f4ed8;
+        border-radius: 999px;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
 
-/* 三個點定位 */
-.steps {
-    position: absolute;
-    top: -14px;
-    left: 0;
-    right: 0;
-}
+    /* 三個點定位 */
+    .steps {
+        position: absolute;
+        top: -14px;
+        left: 0;
+        right: 0;
+    }
 
-.step {
-    position: absolute;
-    transform: translateX(-50%);
-    text-align: center;
-}
+    .step {
+        position: absolute;
+        transform: translateX(-50%);
+        text-align: center;
+    }
 
-.step-1 { left: 0%; }
-.step-2 { left: 50%; }
-.step-3 { left: 100%; }
+    .step-1 {
+        left: 0%;
+    }
 
-/* 圓圈 */
-.circle {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: #d1d5db;
-    color: white;
-    font-size: 13px;
+    .step-2 {
+        left: 50%;
+    }
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+    .step-3 {
+        left: 100%;
+    }
 
-/* 狀態 */
-.step.done .circle {
-    background: #1f4ed8;
-}
+    /* 圓圈 */
+    .circle {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: #d1d5db;
+        color: white;
+        font-size: 13px;
 
-.step small {
-    display: block;
-    margin-top: 5px;
-    font-size: 12px;
-    color: #666;
-}
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
-/* =========================
+    /* 狀態 */
+    .step.done .circle {
+        background: #1f4ed8;
+    }
+
+    .step small {
+        display: block;
+        margin-top: 5px;
+        font-size: 12px;
+        color: #666;
+    }
+
+    /* =========================
    layout
 ========================= */
 
-.wrapper {
-    display: flex;
-    gap: 20px;
-    margin-top: 20px;
-}
+    .wrapper {
+        display: flex;
+        gap: 20px;
+        margin-top: 20px;
+    }
 
-/* calendar */
-.calendar {
-    position: relative;
-    width: 400px;
-    height: 1200px;
-    border: 1px solid #ddd;
-    background: #fafafa;
-    overflow: hidden;
-}
+    /* calendar */
+    .calendar {
+        position: relative;
+        width: 400px;
+        height: 1200px;
+        border: 1px solid #ddd;
+        background: #fafafa;
+        overflow: hidden;
+    }
 
-.hour-row {
-    display: flex;
-    height: 50px;
-    border-bottom: 1px solid #eee;
-}
+    .hour-row {
+        display: flex;
+        height: 50px;
+        border-bottom: 1px solid #eee;
+    }
 
-.hour {
-    width: 60px;
-    font-size: 12px;
-    color: #666;
-    text-align: right;
-    padding-right: 8px;
-}
+    .hour {
+        width: 60px;
+        font-size: 12px;
+        color: #666;
+        text-align: right;
+        padding-right: 8px;
+    }
 
-.slot {
-    flex: 1;
-    background: white;
-}
+    .slot {
+        flex: 1;
+        background: white;
+    }
 
-/* 現在時間線 */
-#nowLine {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: red;
-    z-index: 10;
-}
+    /* 現在時間線 */
+    #nowLine {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: red;
+        z-index: 10;
+    }
 
-/* panel */
-.panel {
-    flex: 1;
-    background: white;
-    border-radius: 15px;
-    padding: 20px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-}
+    /* panel */
+    .panel {
+        flex: 1;
+        background: white;
+        border-radius: 15px;
+        padding: 20px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    }
 
-.time-group {
-    display: flex;
-    gap: 10px;
-}
+    .time-group {
+        display: flex;
+        gap: 10px;
+    }
 
-select {
-    flex: 1;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #ddd;
-}
+    select {
+        flex: 1;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+    }
 </style>
 
-<h2 class="page-title">📅 車輛預約（{{ car_type }}）</h2>
+<h2 class="page-title">車輛預約（{{ car_type }}）</h2>
 
 <!-- ===== Progress（STEP2）===== -->
 <div class="progress-wrap">
@@ -209,6 +218,12 @@ select {
         <form method="post">
             {% csrf_token %}
 
+            {% if error %}
+            <div class="alert alert-danger mb-3">
+                {{ error }}
+            </div>
+            {% endif %}
+
             <div class="mb-3">
                 <label class="form-label">借車時間</label>
                 <div class="time-group">
@@ -222,10 +237,9 @@ select {
 
                     <select name="start_minute" required>
                         <option value="">分鐘</option>
-                        <option>00</option>
-                        <option>15</option>
-                        <option>30</option>
-                        <option>45</option>
+                        {% for m in minutes %}
+                        <option value="{{ m }}">{{ m|stringformat:"02d" }}</option>
+                        {% endfor %}
                     </select>
 
                 </div>
@@ -273,22 +287,64 @@ select {
 </div>
 
 <script>
-function updateNowLine() {
-    const nowLine = document.getElementById("nowLine");
+    function updateNowLine() {
+        const nowLine = document.getElementById("nowLine");
+        const now = new Date();
+        const hour = now.getHours();
+        const minute = now.getMinutes();
 
-    const now = new Date();
-    const hour = now.getHours();
-    const minute = now.getMinutes();
+        const rowHeight = 50;
+        const position = (hour + minute / 60) * rowHeight;
 
-    const rowHeight = 50;
+        nowLine.style.top = position + "px";
+    }
 
-    const position = (hour + minute / 60) * rowHeight;
+    const hourSelect = document.querySelector('select[name="start_hour"]');
+    const minuteSelect = document.querySelector('select[name="start_minute"]');
 
-    nowLine.style.top = position + "px";
-}
+    function enforce15MinRule() {
+        const now = new Date();
+        const maxTime = new Date(now.getTime() + 15 * 60 * 1000);
 
-updateNowLine();
-setInterval(updateNowLine, 60000);
+        const currentHour = now.getHours();
+        const maxHour = maxTime.getHours();
+
+        if (hourSelect) {
+            Array.from(hourSelect.options).forEach(opt => {
+                if (!opt.value) return;
+                const h = parseInt(opt.value);
+                opt.disabled = (h < currentHour || h > maxHour);
+            });
+        }
+
+        if (hourSelect && minuteSelect) {
+            const selectedHour = parseInt(hourSelect.value);
+            Array.from(minuteSelect.options).forEach(opt => {
+                if (!opt.value) return;
+                const m = parseInt(opt.value);
+
+                if (selectedHour === currentHour) {
+                    opt.disabled = (m < now.getMinutes());
+                } else if (selectedHour === maxHour) {
+                    opt.disabled = (m > maxTime.getMinutes());
+                } else {
+                    opt.disabled = false;
+                }
+            });
+        }
+    }
+
+    updateNowLine();
+    enforce15MinRule();
+
+    if (hourSelect) {
+        hourSelect.addEventListener('change', enforce15MinRule);
+    }
+
+    setInterval(function() {
+        updateNowLine();
+        enforce15MinRule();
+    }, 60000);
 </script>
 
 {% endblock %}

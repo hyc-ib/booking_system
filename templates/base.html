@@ -140,6 +140,11 @@ body {
 
     <div class="menu">
 
+        <a href="{% url 'home' %}">
+            <img src="{% static 'images/home_icon.png' %}" class="icon-img">
+            <span class="text">首頁</span>
+        </a>
+
         <a href="/reserve/">
             <img src="{% static 'images/rentCar_icon.png' %}" class="icon-img">
             <span class="text">借車系統</span>
@@ -172,7 +177,13 @@ body {
 <div class="main">
 
     <div class="topbar">
-        <span class="user">{{ request.user.username }} 您好</span>
+
+        {% if user.is_authenticated %}
+            <span class="user">{{ request.user.username }} 您好</span>
+        {% else %}
+            <span class="user">您好</span>
+        {% endif %}
+
     </div>
 
     <div class="content">
@@ -183,6 +194,36 @@ body {
 </div>
 
 <script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+if (!sessionStorage.getItem("tz_sent")) {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    fetch('/set-timezone/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ timezone: tz })
+    });
+
+    sessionStorage.setItem("tz_sent", "1");
+}
+
 function toggleSidebar(){
     document.getElementById("sidebar").classList.toggle("collapsed");
 }

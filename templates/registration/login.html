@@ -8,77 +8,80 @@
 <style>
 body {
     margin: 0;
-    font-family: Arial;
+    font-family: Arial, sans-serif;
 }
 
+/* ===== 背景（專業柔和光感） ===== */
 .hero {
     height: 100vh;
-    position: relative;
-    overflow: hidden;
     display: flex;
     justify-content: center;
     align-items: center;
+
+    background:
+        radial-gradient(circle at 20% 20%, rgba(99,102,241,0.15), transparent 40%),
+        radial-gradient(circle at 80% 30%, rgba(236,72,153,0.12), transparent 40%),
+        radial-gradient(circle at 50% 80%, rgba(59,130,246,0.10), transparent 45%),
+        #f4f6f9;
 }
 
-.hero::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: url("{% static 'images/bookingSys_bg.png' %}") no-repeat center center;
-    background-size: cover;
-    z-index: 0;
-}
-
-.hero::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: rgba(255,255,255,0.55);
-    z-index: 1;
-}
-
-.title {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    font-size: 48px;
-    color: #1f4ed8;
-    font-weight: bold;
-    z-index: 10;
-}
-
+/* ===== 卡片 ===== */
 .card {
-    width: 600px;
-    padding: 30px;
-    border-radius: 20px;
+    width: 380px;
+    padding: 32px;
+    border-radius: 18px;
+
     background: rgba(255,255,255,0.9);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(0,0,0,0.08);
-    box-shadow: 0 15px 40px rgba(0,0,0,0.15);
-    color: #111;
-    z-index: 2;
+
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.12);
 }
 
+/* ===== 標題（改成卡片內） ===== */
+.login-title {
+    text-align: center;
+    font-size: 25px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 22px;
+}
+
+/* ===== input ===== */
 input.phone {
     width: 100%;
     padding: 12px;
     border-radius: 10px;
     border: 1px solid #ddd;
-    margin-bottom: 15px;
     box-sizing: border-box;
+    margin-bottom: 14px;
+    transition: 0.2s;
 }
 
+input:focus {
+    outline: none;
+    border-color: #1f4ed8;
+    box-shadow: 0 0 0 3px rgba(31,78,216,0.15);
+}
+
+/* ===== button ===== */
 button {
     width: 100%;
     padding: 12px;
     border-radius: 10px;
     border: none;
     cursor: pointer;
+    transition: 0.2s;
+    font-weight: 500;
 }
 
 .btn-primary {
     background: #1f4ed8;
     color: white;
+}
+
+.btn-primary:hover {
+    background: #1742b3;
 }
 
 .btn-primary:disabled {
@@ -87,171 +90,110 @@ button {
     cursor: not-allowed;
 }
 
+/* ===== OTP ===== */
 .otp-container {
     display: flex;
     justify-content: center;
     gap: 10px;
-    margin: 15px 0;
+    margin: 18px 0;
 }
 
 .otp-box {
-    width: 45px;
-    height: 50px;
+    width: 42px;
+    height: 48px;
     text-align: center;
-    font-size: 20px;
+    font-size: 18px;
     border-radius: 10px;
     border: 1px solid #ddd;
+    transition: 0.2s;
 }
 
+.otp-box:focus {
+    border-color: #1f4ed8;
+    box-shadow: 0 0 0 3px rgba(31,78,216,0.15);
+    outline: none;
+}
+
+/* ===== message ===== */
 .msg {
     text-align: center;
-    margin-top: 10px;
+    margin-top: 12px;
     font-size: 14px;
+    color: #6b7280;
+    min-height: 18px;
 }
 
-/* modal */
-.modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.4);
-    z-index: 999;
-    justify-content: center;
-    align-items: center;
-}
+.msg.error { color: #ef4444; }
+.msg.success { color: #16a34a; }
 
-.modal-content {
-    width: 600px;
-    max-width: 90%;
-    background: white;
-    border-radius: 15px;
-    padding: 20px;
-}
-
-.modal-body {
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.close {
-    float: right;
-    font-size: 20px;
-    cursor: pointer;
-}
-
-label a {
-    color: #1f4ed8;
-}
 </style>
 </head>
 
 <body>
 
-<div class="title">登入 / 註冊</div>
-
 <div class="hero">
 
-<div class="card">
+    <div class="card">
 
-    <input class="phone" id="phone" placeholder="手機號碼">
+        <div class="login-title">登入 / 註冊</div>
 
-    <label>
-        <input type="checkbox" id="agree" disabled>
-        我已閱讀並同意
-        <a href="#" id="privacyLink">隱私權條款</a>
-    </label>
+        <input class="phone" id="phone" placeholder="手機號碼">
 
-    <br><br>
+        <button id="sendBtn" class="btn-primary" disabled>
+            寄送驗證碼
+        </button>
 
-    <button id="sendBtn" class="btn-primary" disabled>寄送驗證碼</button>
-
-    <div class="otp-container">
-        <input class="otp-box" maxlength="1">
-        <input class="otp-box" maxlength="1">
-        <input class="otp-box" maxlength="1">
-        <input class="otp-box" maxlength="1">
-        <input class="otp-box" maxlength="1">
-        <input class="otp-box" maxlength="1">
-    </div>
-
-    <button id="loginBtn" class="btn-primary" disabled>完成</button>
-
-    <div id="msg" class="msg"></div>
-
-</div>
-
-</div>
-
-<!-- modal -->
-<div id="privacyModal" class="modal">
-    <div class="modal-content">
-        <span id="closeModal" class="close">&times;</span>
-        <h2>隱私權條款</h2>
-
-        <div id="policyBox" class="modal-body">
-            <p>請完整閱讀條款內容...</p>
-            <p>系統僅用於手機驗證</p>
-            <p>不得外流資料</p>
-            <div style="height:200px;"></div>
+        <div class="otp-container">
+            <input class="otp-box" maxlength="1">
+            <input class="otp-box" maxlength="1">
+            <input class="otp-box" maxlength="1">
+            <input class="otp-box" maxlength="1">
+            <input class="otp-box" maxlength="1">
+            <input class="otp-box" maxlength="1">
         </div>
+
+        <button id="loginBtn" class="btn-primary" disabled>
+            完成
+        </button>
+
+        <div id="msg" class="msg"></div>
+
     </div>
+
 </div>
+
+<!-- CSRF（簡化版） -->
+<meta name="csrf-token" content="{{ csrf_token }}">
 
 <script>
 const phone = document.getElementById("phone");
-const agree = document.getElementById("agree");
 const sendBtn = document.getElementById("sendBtn");
 const loginBtn = document.getElementById("loginBtn");
 const otpBoxes = document.querySelectorAll(".otp-box");
 const msg = document.getElementById("msg");
 
-const modal = document.getElementById("privacyModal");
-const policyBox = document.getElementById("policyBox");
-
-let readDone = false;
-
-/* ===== CSRF 初始化（⭐關鍵） ===== */
-fetch('/get-csrf-token/', {
-    method: 'GET',
-    credentials: 'include'
-});
-
-/* ===== modal ===== */
-document.getElementById("privacyLink").onclick = (e)=>{
-    e.preventDefault();
-    modal.style.display="flex";
-};
-
-document.getElementById("closeModal").onclick = ()=>{
-    modal.style.display="none";
-};
-
-window.onclick = (e)=>{
-    if(e.target===modal) modal.style.display="none";
-};
-
-/* 必須滑到底 */
-policyBox.addEventListener("scroll", ()=>{
-    if(policyBox.scrollTop + policyBox.clientHeight >= policyBox.scrollHeight - 5){
-        readDone = true;
-        agree.disabled = false;
-    }
-});
+/* ===== CSRF ===== */
+function getCSRF() {
+    return document.querySelector('meta[name="csrf-token"]').content;
+}
 
 /* ===== OTP ===== */
 function getOTP(){
-    return Array.from(otpBoxes).map(b=>b.value).join("");
+    return Array.from(otpBoxes).map(b => b.value).join("");
 }
 
 function checkOTP(){
     loginBtn.disabled = getOTP().length !== 6;
 }
 
+/* auto focus first */
+otpBoxes[0].focus();
+
 otpBoxes.forEach((box,i)=>{
     box.addEventListener("input",()=>{
         box.value = box.value.replace(/\D/g,"");
 
-        if(box.value && i<5){
+        if(box.value && i < 5){
             otpBoxes[i+1].focus();
         }
 
@@ -259,7 +201,7 @@ otpBoxes.forEach((box,i)=>{
     });
 
     box.addEventListener("keydown",(e)=>{
-        if(e.key==="Backspace" && !box.value && i>0){
+        if(e.key === "Backspace" && !box.value && i > 0){
             otpBoxes[i-1].focus();
         }
     });
@@ -273,105 +215,103 @@ otpBoxes[0].addEventListener("paste",(e)=>{
         .replace(/\D/g,"")
         .slice(0,6);
 
-    otpBoxes.forEach((b,i)=>b.value=data[i]||"");
+    otpBoxes.forEach((b,i)=>b.value = data[i] || "");
     checkOTP();
 });
 
-/* ===== send button ===== */
-let timer=null;
-
+/* ===== phone validate ===== */
 function updateSend(){
-    const okPhone = /^09\d{8}$/.test(phone.value);
-    sendBtn.disabled = !(okPhone && agree.checked && readDone);
+    const ok = /^09\d{8}$/.test(phone.value.trim());
+    sendBtn.disabled = !ok;
 }
 
 phone.addEventListener("input",updateSend);
-agree.addEventListener("change",updateSend);
 
-/* countdown */
+/* ===== countdown ===== */
+let timer=null;
+
 function startCountdown(){
-    let sec=60;
-    sendBtn.disabled=true;
+    let sec = 60;
+    sendBtn.disabled = true;
 
-    timer=setInterval(()=>{
-        sendBtn.innerText=sec+" 秒";
+    timer = setInterval(()=>{
+        sendBtn.innerText = sec + " 秒";
         sec--;
 
-        if(sec<0){
+        if(sec < 0){
             clearInterval(timer);
-            sendBtn.innerText="重新發送";
+            sendBtn.innerText = "重新發送";
             updateSend();
         }
     },1000);
 }
 
-/* ===== CSRF helper ===== */
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.startsWith(name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-
 /* ===== send OTP ===== */
-sendBtn.onclick=()=>{
+sendBtn.onclick = () => {
+
+    msg.innerText = "";
+    msg.className = "msg";
+
     fetch('/send_otp/',{
         method:'POST',
-        credentials: 'include',  // ⭐關鍵
+        credentials:'include',
         headers:{
             'Content-Type':'application/x-www-form-urlencoded',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': getCSRF()
         },
-        body:'phone='+phone.value
+        body:'phone=' + phone.value
     })
-    .then(res => res.json())
+    .then(res => {
+        if(!res.ok) throw new Error();
+        return res.json();
+    })
     .then(data=>{
-        msg.innerText = data.message || "OTP已發送";
+        msg.innerText = data.message || "OTP 已發送";
+        msg.className = "msg success";
         startCountdown();
     })
     .catch(()=>{
-        msg.innerText="發送失敗";
-        msg.style.color="red";
+        msg.innerText = "發送失敗";
+        msg.className = "msg error";
     });
 };
 
 /* ===== verify OTP ===== */
 loginBtn.onclick = () => {
 
-    let otp = getOTP();
-
     fetch('/verify_otp/', {
         method: 'POST',
-        credentials: 'include',  // ⭐關鍵
+        credentials: 'include',
         headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFToken': getCookie('csrftoken')
+            'Content-Type':'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCSRF()
         },
-        body: `phone=${phone.value}&otp=${otp}`
+        body:`phone=${phone.value}&otp=${getOTP()}`
     })
-    .then(res => res.json())
+    .then(res => {
+        if(!res.ok) throw new Error();
+        return res.json();
+    })
     .then(data => {
 
-        if (data.status === "login_success") {
+        if(data.status === "login_success"){
             window.location.href = data.redirect;
         }
-        else if (data.status === "need_register") {
+        else if(data.status === "need_register"){
             window.location.href = "/register/";
         }
         else {
             msg.innerText = "OTP 錯誤";
-            msg.style.color = "red";
+            msg.className = "msg error";
         }
+    })
+    .catch(()=>{
+        msg.innerText = "系統錯誤";
+        msg.className = "msg error";
     });
 };
+
 </script>
+
 </body>
 </html>

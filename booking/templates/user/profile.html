@@ -7,6 +7,7 @@
     margin: 40px auto;
 }
 
+/* 基本 row */
 .row {
     display: flex;
     justify-content: space-between;
@@ -23,6 +24,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 /* input */
@@ -32,12 +34,37 @@ input {
     border-radius: 6px;
 }
 
-/* btn group */
+/* buttons */
 .btn-group {
     margin-top: 30px;
     display: flex;
     gap: 10px;
     justify-content: center;
+}
+
+.small-btn {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid #1f4ed8;
+    background: white;
+    color: #1f4ed8;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.small-btn:hover {
+    opacity: 0.85;
+}
+
+.small-btn.warning {
+    border-color: #f59e0b;
+    color: #f59e0b;
+}
+
+.small-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
 /* badge */
@@ -51,31 +78,110 @@ input {
     font-size: 12px;
 }
 
-/* small button */
-.small-btn {
-    font-size: 12px;
-    padding: 4px 10px;
-    border-radius: 6px;
-    border: 1px solid #1f4ed8;
-    background: white;
-    color: #1f4ed8;
-    cursor: pointer;
+/* =========================
+   🔥 視覺化卡片區（重點）
+========================= */
+.card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
 }
 
-.small-btn.warning {
-    border-color: #f59e0b;
+.card {
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 10px;
+    padding: 12px;
+    min-height: 70px;
+}
+
+.card-title {
+    font-size: 12px;
+    color: #666;
+}
+
+.card-value {
+    font-size: 20px;
+    font-weight: 700;
+    margin-top: 4px;
+}
+
+.card-value.red {
+    color: #ef4444;
+}
+
+.card-value.orange {
     color: #f59e0b;
 }
 
-.small-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+.card-value.blue {
+    color: #1f4ed8;
 }
+
+/* 使用紀錄小卡 */
+.stat-wrap {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.stat-card {
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 10px;
+    padding: 10px;
+    flex: 1;
+    min-width: 120px;
+}
+
+.stat-title {
+    font-size: 12px;
+    color: #666;
+}
+
+.stat-value {
+    font-size: 22px;
+    font-weight: 700;
+}
+
+/* logout */
+.logout-wrapper {
+    margin-top: 35px;
+    display: flex;
+    justify-content: center;
+}
+
 </style>
 
 <div class="page">
 
 <h2>個人資料</h2>
+
+{% if risk_level == "high_risk" %}
+<div style="background:#fee2e2; color:#b91c1c; padding:10px; border-radius:10px; margin-bottom:15px;">
+    高風險鎖定中<br>
+    解鎖時間：{{ profile.risk_locked_until }}<br>
+
+    風險分數：<strong>{{ risk_score }}</strong><br>
+    原因：{{ risk_reason }}
+</div>
+
+{% elif risk_level == "warning" %}
+<div style="background:#fef3c7; color:#92400e; padding:12px; border-radius:10px; margin-bottom:15px;">
+    <strong>異常使用行為</strong><br>
+
+    風險分數：<strong>{{ risk_score }}</strong><br>
+    原因：{{ risk_reason }}
+</div>
+
+{% elif risk_level == "normal" %}
+<div style="background:#ecfdf5; color:#166534; padding:10px; border-radius:10px; margin-bottom:15px;">
+    <strong>使用狀態正常</strong><br>
+    風險分數：{{ risk_score }}
+</div>
+{% endif %}
 
 <form method="post">
     {% csrf_token %}
@@ -98,56 +204,124 @@ input {
 
         <div class="value">
 
-            <!-- 顯示 -->
             <span id="emailText">{{ profile.email }}</span>
 
-            <!-- 編輯 -->
             <input type="email"
                    name="email"
                    id="emailInput"
                    value="{{ profile.email }}"
                    style="display:none;">
 
-            <!-- 狀態 -->
             {% if profile.is_email_verified %}
                 <span class="badge-ok">已驗證</span>
             {% else %}
                 <span class="badge-no">未驗證</span>
             {% endif %}
 
-            <!-- 修改 -->
             <button type="button"
                     id="editBtn"
                     class="small-btn">
                 修改
             </button>
 
-            <!-- 驗證（已驗證就禁用） -->
             <button type="submit"
                     name="action"
-                    value="verify_email"
-                    id="verifyBtn"
+                    value="submit"
+                    id="submitBtn"
                     class="small-btn warning"
-                    {% if profile.is_email_verified %}disabled{% endif %}>
-                驗證
+                    disabled>
+                儲存 / 驗證
             </button>
 
         </div>
     </div>
 
-    <!-- 儲存 -->
-    <div class="btn-group">
+    <!-- ================= 使用紀錄（清楚化） ================= -->
+    <div class="row" style="flex-direction: column; align-items: flex-start; gap: 10px;">
 
-        <button type="submit"
-                name="action"
-                value="save"
-                class="btn btn-primary">
-            儲存
-        </button>
+        <div class="label">使用紀錄</div>
 
+        <div class="stat-wrap">
+
+            <div class="stat-card">
+                <div class="stat-title">未報到</div>
+                <div class="stat-value red">
+                    {{ no_show_count|default:0 }}
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-title">逾期未還</div>
+                <div class="stat-value orange">
+                    {{ overdue_return_count|default:0 }}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ================= 使用分析（更清楚） ================= -->
+    <div class="row" style="flex-direction: column; align-items: flex-start; gap: 12px;">
+
+        <div class="label">使用分析</div>
+
+        <div class="card-grid">
+
+            <div class="card">
+                <div class="card-title">信用分數</div>
+                <div class="card-value blue">
+                    {{ credit_score }}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">未報到率</div>
+                <div class="card-value">
+                    {{ no_show_rate }}%
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">平均使用時間</div>
+                <div class="card-value">
+                    {{ avg_duration_min }} 分鐘
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">最常使用車型</div>
+                <div class="card-value" style="font-size:16px;">
+                    {{ favorite_car_type }}
+                </div>
+            </div>
+
+        </div>
     </div>
 
 </form>
+
+<!-- 登出 -->
+<div style="margin-top: 30px; display:flex; justify-content:center;">
+
+    <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+
+        <button type="submit"
+                style="
+                    background: #ef4444;
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 6px;
+                    font-size: 14px;
+                    cursor: pointer;
+                ">
+            登出
+        </button>
+
+    </form>
+
+</div>
 
 </div>
 
@@ -155,56 +329,34 @@ input {
 const emailText = document.getElementById("emailText");
 const emailInput = document.getElementById("emailInput");
 const editBtn = document.getElementById("editBtn");
-const verifyBtn = document.getElementById("verifyBtn");
+const submitBtn = document.getElementById("submitBtn");
 
 let editing = false;
 
 editBtn.addEventListener("click", function () {
 
     if (!editing) {
-
-        // 進入編輯模式
         emailText.style.display = "none";
         emailInput.style.display = "inline-block";
         emailInput.focus();
 
         editBtn.innerText = "取消";
-
-        // 只有未驗證才允許操作（DB 控制）
-        if (!verifyBtn.disabled) {
-            verifyBtn.disabled = false;
-        }
-
         editing = true;
 
     } else {
-
-        // 回復顯示模式
         emailText.style.display = "inline-block";
         emailInput.style.display = "none";
 
         editBtn.innerText = "修改";
-
-        // 還原值
         emailInput.value = emailText.innerText;
-
-        // 未驗證才允許驗證
-        if (!{{ profile.is_email_verified|yesno:"true,false" }}) {
-            verifyBtn.disabled = false;
-        }
 
         editing = false;
     }
 });
 
-// email 改動時（避免誤驗證）
 emailInput.addEventListener("input", function () {
     if (emailInput.value !== emailText.innerText) {
-        if (!{{ profile.is_email_verified|yesno:"true,false" }}) {
-            verifyBtn.disabled = false;
-        }
-    } else {
-        verifyBtn.disabled = true;
+        submitBtn.disabled = false;
     }
 });
 </script>
