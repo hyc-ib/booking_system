@@ -10,8 +10,8 @@
     }
 
     /* =========================
-   ✅ PROGRESS（統一版）
-========================= */
+    ✅ PROGRESS（統一版）
+    ========================= */
 
     .progress-wrap {
         display: flex;
@@ -97,8 +97,8 @@
     }
 
     /* =========================
-   layout
-========================= */
+    layout
+    ========================= */
 
     .wrapper {
         display: flex;
@@ -109,8 +109,8 @@
     /* calendar */
     .calendar {
         position: relative;
-        width: 400px;
-        height: 1200px;
+        width: 500px;
+        height: 600px;
         border: 1px solid #ddd;
         background: #fafafa;
         overflow: hidden;
@@ -133,16 +133,6 @@
     .slot {
         flex: 1;
         background: white;
-    }
-
-    /* 現在時間線 */
-    #nowLine {
-        position: absolute;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: red;
-        z-index: 10;
     }
 
     /* panel */
@@ -199,15 +189,28 @@
 </div>
 
 <div class="wrapper">
-
-    <!-- calendar -->
     <div class="calendar">
-        <div id="nowLine"></div>
+        <div id="calendar-hint" style="padding: 80px 20px; text-align: center; color: #888; font-size: 15px;">
+            <div style="font-size: 24px; margin-bottom: 10px;">🔍</div>
+            請在右側選擇「借車時間（小時）」<br>系統將即時在左側呈現該時段起連續 3 小時的公務車狀態
+        </div>
 
-        {% for i in range_0_24 %}
-        <div class="hour-row">
-            <div class="hour">{{ i }}:00</div>
-            <div class="slot"></div>
+        {% for slot in time_slots %}
+        <div class="time-slot-item" data-hour="{{ slot.hour }}">
+            <div style="width: 80px; font-size: 17px; font-weight: bold; color: #333;">{{ slot.time_label }}</div>
+            <div style="flex: 1; display: flex; gap: 15px; align-items: center;">
+                {% for car in slot.car_status %}
+                    <div class="car-box">
+                        {% if car.reserved %}
+                            <div class="car-icon" style="color: #e2e8f0; filter: grayscale(100%);">🚗</div>
+                            <div class="car-status-text" style="color: #94a3b8;">已預約</div>
+                        {% else %}
+                            <div class="car-icon" style="color: #ffffff; -webkit-text-stroke: 1.5px #22c55e;">🚗</div>
+                            <div class="car-status-text" style="color: #22c55e; font-weight: bold;">可預約</div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
         </div>
         {% endfor %}
     </div>
@@ -225,17 +228,15 @@
             {% endif %}
 
             <div class="mb-3">
-                <label class="form-label">借車時間</label>
+                <label class="form-label" style="font-weight: bold;">借車時間</label>
                 <div class="time-group">
-
-                    <select name="start_hour" required>
+                    <select name="start_hour" id="start_hour_select" required>
                         <option value="">小時</option>
                         {% for i in range_0_24 %}
                         <option value="{{ i }}">{{ i }}</option>
                         {% endfor %}
                     </select>
-
-                    <select name="start_minute" required>
+                    <select name="start_minute" id="start_minute_select" required>
                         <option value="">分鐘</option>
                         {% for m in minutes %}
                         <option value="{{ m }}">{{ m|stringformat:"02d" }}</option>
@@ -246,7 +247,7 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label">還車時間</label>
+                <label class="form-label" style="font-weight: bold;">還車時間</label>
                 <div class="time-group">
 
                     <select name="end_hour" required>
@@ -287,25 +288,37 @@
 </div>
 
 <script>
-    function updateNowLine() {
-        const nowLine = document.getElementById("nowLine");
-        const now = new Date();
-        const hour = now.getHours();
-        const minute = now.getMinutes();
+    const hourSelect = document.getElementById('start_hour_select');
+    const minuteSelect = document.getElementById('start_minute_select');
+    const slotItems = document.querySelectorAll('.time-slot-item');
+    const hint = document.getElementById('calendar-hint');
 
-        const rowHeight = 50;
-        const position = (hour + minute / 60) * rowHeight;
+    function updateCalendarVisibility() {
+        if (!hourSelect) return;
+        const selectedValue = hourSelect.value;
 
-        nowLine.style.top = position + "px";
+        if (selectedValue === "") {
+            hint.style.display = 'block';
+            slotItems.forEach(item => item.style.display = 'none');
+        } else {
+            hint.style.display = 'none';
+            const startH = parseInt(selectedValue);
+            const targetHours = [startH, (startH + 1) % 24, (startH + 2) % 24];
+
+            slotItems.forEach(item => {
+                const itemHour = parseInt(item.getAttribute('data-hour'));
+                if (targetHours.includes(itemHour)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
     }
-
-    const hourSelect = document.querySelector('select[name="start_hour"]');
-    const minuteSelect = document.querySelector('select[name="start_minute"]');
 
     function enforce15MinRule() {
         const now = new Date();
         const maxTime = new Date(now.getTime() + 15 * 60 * 1000);
-
         const currentHour = now.getHours();
         const maxHour = maxTime.getHours();
 
@@ -322,29 +335,32 @@
             Array.from(minuteSelect.options).forEach(opt => {
                 if (!opt.value) return;
                 const m = parseInt(opt.value);
-
+                
                 if (selectedHour === currentHour) {
-                    opt.disabled = (m < now.getMinutes());
+                    opt.disabled = (m < now.getMinutes() || (selectedHour === maxHour && m > maxTime.getMinutes()));
                 } else if (selectedHour === maxHour) {
                     opt.disabled = (m > maxTime.getMinutes());
                 } else {
-                    opt.disabled = false;
+                    opt.disabled = true;
                 }
             });
         }
     }
 
-    updateNowLine();
     enforce15MinRule();
+    updateCalendarVisibility();
 
     if (hourSelect) {
-        hourSelect.addEventListener('change', enforce15MinRule);
+        hourSelect.addEventListener('change', function() {
+            enforce15MinRule();
+            updateCalendarVisibility();
+        });
+    }
+    if (minuteSelect) {
+        minuteSelect.addEventListener('change', enforce15MinRule);
     }
 
-    setInterval(function() {
-        updateNowLine();
-        enforce15MinRule();
-    }, 60000);
+    setInterval(enforce15MinRule, 60000);
 </script>
 
 {% endblock %}
