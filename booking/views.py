@@ -360,6 +360,8 @@ def reserve_step1(request):
 @login_required(login_url='login')
 def reserve_step2(request):
     db_now = timezone.localtime()
+    
+    # 原始功能：自動取消過期未報到的 pending 預約
     Reservation.objects.filter(
         status="pending",
         start_time__lt=db_now - timedelta(minutes=15)
@@ -372,45 +374,80 @@ def reserve_step2(request):
 
     car_prefix = "4Car" if car_type == "4人座" else "10Car"
 
+    # 取得該車型所有車輛
     cars = Car.objects.filter(name__startswith=car_prefix).annotate(
         usage_count=Count("reservation")
     ).order_by("usage_count")
 
-    # ✅ 加入使用次數（避免一直選同一台🔥）
-    cars = Car.objects.filter(name__startswith=car_prefix).annotate(
-        usage_count=Count("reservation")
-    ).order_by("usage_count")
-
+    total_cars_count = cars.count()
+    today = timezone.localdate()
     now = timezone.localtime()
 
+    day_start = timezone.make_aware(datetime.combine(today, time.min))
+    day_end = timezone.make_aware(datetime.combine(today, time.max))
+    
+    # 撈取今日所有相關預約
+    todays_reservations = Reservation.objects.filter(
+        car__in=cars,
+        start_time__lt=day_end,
+        end_time__gt=day_start
+    ).select_related('car')
+
+    # 生成 96 個 15 分鐘時段插槽（24小時 * 4）
+    time_slots = []
+    for i in range(96):
+        slot_start = day_start + timedelta(minutes=i*15)
+        slot_end = slot_start + timedelta(minutes=15)
+        
+        car_status_list = []
+        for car in cars:
+            # 精確檢查這台特定的實體車在此 15 分鐘內有沒有被預約
+            is_reserved = todays_reservations.filter(
+                car=car,
+                start_time__lt=slot_end,
+                end_time__gt=slot_start
+            ).exists()
+            car_status_list.append({'reserved': is_reserved})
+
+        time_slots.append({
+            'time_label': slot_start.strftime("%H:%M"),
+            'hour': slot_start.hour,
+            'car_status': car_status_list
+        })
+
+    # 配合 15 分鐘預約限制，後端下拉選單僅動態開放「目前小時」至「最大合規小時」
+    max_time_boundary = now + timedelta(minutes=15)
+    allowed_hours = sorted(list(set([now.hour, max_time_boundary.hour])))
+
+    context = {
+        "car_type": car_type,
+        "time_slots": time_slots,
+        "total_cars_count": total_cars_count,
+        "range_0_24": allowed_hours,  # 僅釋出當前合規的小時選項給前端選單
+        "minutes": [0, 15, 30, 45],
+    }
+
     if request.method == "POST":
+        start_hour = int(request.POST.get("start_hour", 0))
+        start_minute = int(request.POST.get("start_minute", 0))
+        end_hour = int(request.POST.get("end_hour", 0))
+        end_minute = int(request.POST.get("end_minute", 0))
 
-        start_hour = int(request.POST.get("start_hour"))
-        start_minute = int(request.POST.get("start_minute"))
-        end_hour = int(request.POST.get("end_hour"))
-        end_minute = int(request.POST.get("end_minute"))
+        start_dt = timezone.make_aware(datetime.combine(today, time(start_hour, start_minute)))
+        end_dt = timezone.make_aware(datetime.combine(today, time(end_hour, end_minute)))
 
-        today = timezone.localdate()
-
-        start_dt = datetime.combine(today, time()).replace(
-            hour=start_hour, minute=start_minute
-        )
-        end_dt = datetime.combine(today, time()).replace(
-            hour=end_hour, minute=end_minute
-        )
-
-        start_dt = timezone.make_aware(start_dt)
-        end_dt = timezone.make_aware(end_dt)
-
+        # 後端防呆：公務車僅開放使用前 15 分鐘內預約
         if start_dt > now + timedelta(minutes=15):
             max_open_time = (now + timedelta(minutes=15)).strftime("%H:%M")
-            return render(request, "booking/reserve_step2.html", {
-                "car_type": car_type,
-                "range_0_24": range(now.hour, 24),
-                "minutes": [0, 15, 30, 45],
-                "error": f"不符合借車規定：公務車僅開放使用前 15 分鐘內預約。目前最遠僅能預約至 {max_open_time} 之前的車輛。"
-            })
+            context["error"] = f"不符合借車規定：公務車僅開放使用前 15 分鐘內預約。目前最遠僅能預約至 {max_open_time} 之前的車輛。"
+            return render(request, "booking/reserve_step2.html", context)
 
+        # 後端防呆：檢查是否預約過去的時間
+        if start_dt < now - timedelta(minutes=5):
+            context["error"] = "預約起始時間不可早於當前時間。"
+            return render(request, "booking/reserve_step2.html", context)
+
+        # 驗證規則 2：結束時間檢查
         if end_dt <= start_dt:
             return render(request, "booking/reserve_step2.html", {
                 "car_type": car_type,
@@ -526,8 +563,10 @@ def reserve_step2(request):
 
     context = {
         "car_type": car_type,
+        "time_slots": time_slots,
+        "total_cars_count": total_cars_count,
         "range_0_24": range(now.hour, 24),
-        "minutes": [0, 15, 30, 45]
+        "minutes": [0, 15, 30, 45],
     }
     return render(request, "booking/reserve_step2.html", context)
 
