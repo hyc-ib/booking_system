@@ -14,7 +14,7 @@ from django.utils.crypto import get_random_string
 from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.db import transaction
-from django.db.models import Count, Avg, F, ExpressionWrapper, DurationField
+from django.db.models import Count, Q
 from django.db.models.functions import TruncMonth
 from booking.services.risk_engine import get_user_stats, get_user_risk, detect_user_risk
 from booking.services.lock_engine import apply_user_risk_lock, is_user_locked
@@ -413,31 +413,41 @@ def reserve_step2(request):
     day_end = timezone.make_aware(datetime.combine(today, time.max))
 
     # =========================
-    # 今日所有預約
-    # =========================
-    todays_reservations = Reservation.objects.filter(
-        car__in=cars,
-        start_time__lt=day_end,
-        end_time__gt=day_start
-    ).select_related('car')
-
-    # =========================
     # 96 slot 視覺化
     # =========================
     time_slots = []
-    for i in range(96):
+    start_index = int((start_anchor - day_start).total_seconds() // 900)
+
+    for i in range(start_index, start_index + 96):
         slot_start = day_start + timedelta(minutes=i * 15)
         slot_end = slot_start + timedelta(minutes=15)
 
         car_status_list = []
         for car in cars:
             # 精確檢查這台特定的實體車在此 15 分鐘內有沒有被預約
-            is_reserved = todays_reservations.filter(
+            is_using = Reservation.objects.filter(
                 car=car,
+                status="on-going",
+                return_time__isnull=True,
                 start_time__lt=slot_end,
-                end_time__gt=slot_start
+                end_time__gt=slot_start,
             ).exists()
-            car_status_list.append({'reserved': is_reserved})
+
+            is_pending = Reservation.objects.filter(
+                car=car,
+                status="pending",
+                start_time__lt=slot_end,
+                end_time__gt=slot_start,
+            ).exists()
+
+            if is_using:
+                state = "using"
+            elif is_pending:
+                state = "pending"
+            else:
+                state = "free"
+
+            car_status_list.append({"state": state})
 
         time_slots.append({
             'time_label': slot_start.strftime("%H:%M"),
