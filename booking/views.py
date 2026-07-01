@@ -360,8 +360,28 @@ def reserve_step1(request):
 @login_required(login_url='login')
 def reserve_step2(request):
     db_now = timezone.localtime()
-    
-    # 原始功能：自動取消過期未報到的 pending 預約
+
+    # =========================
+    # helper：時間對齊
+    # =========================
+    def round_start_time(dt):
+        minute = dt.minute
+
+        if 0 <= minute <= 15:
+            minute = 15
+        elif 16 <= minute <= 30:
+            minute = 30
+        elif 31 <= minute <= 45:
+            minute = 45
+        else:
+            dt = dt + timedelta(hours=1)
+            minute = 0
+
+        return dt.replace(minute=minute, second=0, microsecond=0)
+
+    # =========================
+    # 清理過期 pending
+    # =========================
     Reservation.objects.filter(
         status="pending",
         start_time__lt=db_now - timedelta(minutes=15)
@@ -383,22 +403,34 @@ def reserve_step2(request):
     today = timezone.localdate()
     now = timezone.localtime()
 
+    start_anchor = round_start_time(now)
+    start_anchor = start_anchor.replace(
+        year=today.year,
+        month=today.month,
+        day=today.day
+    )
+    end_anchor = start_anchor + timedelta(hours=4)
+
     day_start = timezone.make_aware(datetime.combine(today, time.min))
     day_end = timezone.make_aware(datetime.combine(today, time.max))
-    
-    # 撈取今日所有相關預約
+
+    # =========================
+    # 今日所有預約
+    # =========================
     todays_reservations = Reservation.objects.filter(
         car__in=cars,
         start_time__lt=day_end,
         end_time__gt=day_start
     ).select_related('car')
 
-    # 生成 96 個 15 分鐘時段插槽（24小時 * 4）
+    # =========================
+    # 96 slot 視覺化
+    # =========================
     time_slots = []
     for i in range(96):
-        slot_start = day_start + timedelta(minutes=i*15)
+        slot_start = day_start + timedelta(minutes=i * 15)
         slot_end = slot_start + timedelta(minutes=15)
-        
+
         car_status_list = []
         for car in cars:
             # 精確檢查這台特定的實體車在此 15 分鐘內有沒有被預約
@@ -412,46 +444,45 @@ def reserve_step2(request):
         time_slots.append({
             'time_label': slot_start.strftime("%H:%M"),
             'hour': slot_start.hour,
-            'car_status': car_status_list
+            'car_status': car_status_list,
+
+            'datetime': slot_start.isoformat(),
         })
 
-    # 配合 15 分鐘預約限制，後端下拉選單僅動態開放「目前小時」至「最大合規小時」
-    max_time_boundary = now + timedelta(minutes=15)
-    allowed_hours = sorted(list(set([now.hour, max_time_boundary.hour])))
-
-    context = {
-        "car_type": car_type,
-        "time_slots": time_slots,
-        "total_cars_count": total_cars_count,
-        "range_0_24": allowed_hours,  # 僅釋出當前合規的小時選項給前端選單
-        "minutes": [0, 15, 30, 45],
-    }
-
+    # =========================
+    # POST
+    # =========================
     if request.method == "POST":
-        start_hour = int(request.POST.get("start_hour", 0))
-        start_minute = int(request.POST.get("start_minute", 0))
-        end_hour = int(request.POST.get("end_hour", 0))
+
+        # ❌ 不再使用 user input start time
+        raw_now = timezone.localtime()
+
+        # 🔥 系統計算 start time（固定）
+        start_dt = round_start_time(raw_now)
+        start_dt = start_dt.replace(
+            year=today.year,
+            month=today.month,
+            day=today.day
+        )
+
+        # =========================
+        # end time（保留原本）
+        # =========================
+        end_hour = start_dt.hour
         end_minute = int(request.POST.get("end_minute", 0))
 
-        start_dt = timezone.make_aware(datetime.combine(today, time(start_hour, start_minute)))
-        end_dt = timezone.make_aware(datetime.combine(today, time(end_hour, end_minute)))
+        end_dt = timezone.make_aware(
+            datetime.combine(today, time(end_hour, end_minute))
+        )
 
-        # 後端防呆：公務車僅開放使用前 15 分鐘內預約
-        if start_dt > now + timedelta(minutes=15):
-            max_open_time = (now + timedelta(minutes=15)).strftime("%H:%M")
-            context["error"] = f"不符合借車規定：公務車僅開放使用前 15 分鐘內預約。目前最遠僅能預約至 {max_open_time} 之前的車輛。"
-            return render(request, "booking/reserve_step2.html", context)
-
-        # 後端防呆：檢查是否預約過去的時間
-        if start_dt < now - timedelta(minutes=5):
-            context["error"] = "預約起始時間不可早於當前時間。"
-            return render(request, "booking/reserve_step2.html", context)
-
-        # 驗證規則 2：結束時間檢查
+        # =========================
+        # 🔥 rule check
+        # =========================
         if end_dt <= start_dt:
             return render(request, "booking/reserve_step2.html", {
                 "car_type": car_type,
-                "range_0_24": range(now.hour, 24),
+                "time_slots": time_slots,
+                "total_cars_count": total_cars_count,
                 "error": "結束時間必須大於開始時間"
             })
 
@@ -460,7 +491,9 @@ def reserve_step2(request):
         best_car = None
         best_score = None
 
-        # ====== 找最佳車（Best Fit + 使用率）======
+        # =========================
+        # Best Fit 車輛選擇
+        # =========================
         for car in cars:
             unreturned = Reservation.objects.filter(
                 car=car,
@@ -485,25 +518,23 @@ def reserve_step2(request):
 
             # ===== 找 gaps =====
             gaps = []
-            prev_end = datetime.combine(today, time(0, 0))
-            prev_end = timezone.make_aware(prev_end)
+            prev_end = timezone.make_aware(datetime.combine(today, time(0, 0)))
 
             for r in reservations:
                 if r.start_time > prev_end:
                     gaps.append((prev_end, r.start_time))
                 prev_end = r.end_time
 
-            day_end = datetime.combine(today, time(23, 59))
-            day_end = timezone.make_aware(day_end)
+            day_end = timezone.make_aware(datetime.combine(today, time(23, 59)))
 
             if prev_end < day_end:
                 gaps.append((prev_end, day_end))
 
-            # ===== 找可用 gap =====
-            valid_gaps = []
-            for g_start, g_end in gaps:
-                if (g_end - g_start) >= duration:
-                    valid_gaps.append((g_start, g_end))
+            valid_gaps = [
+                (g_start, g_end)
+                for g_start, g_end in gaps
+                if (g_end - g_start) >= duration
+            ]
 
             if not valid_gaps:
                 continue
@@ -523,10 +554,14 @@ def reserve_step2(request):
         if not best_car:
             return render(request, "booking/reserve_step2.html", {
                 "car_type": car_type,
-                "range_0_24": range(now.hour, 24),
+                "time_slots": time_slots,
+                "total_cars_count": total_cars_count,
                 "error": "目前無可用車輛"
             })
 
+        # =========================
+        # 🔥 commit
+        # =========================
         with transaction.atomic():
 
             # 🔥 1. 鎖車（關鍵）
@@ -542,8 +577,9 @@ def reserve_step2(request):
             if conflict:
                 return render(request, "booking/reserve_step2.html", {
                     "car_type": car_type,
-                    "range_0_24": range(now.hour, 24),
-                    "error": "該時段剛被預約，請重新選擇"
+                    "time_slots": time_slots,
+                    "total_cars_count": total_cars_count,
+                    "error": "該時段已被預約"
                 })
 
             # 🔥 3. 安全寫入
@@ -561,12 +597,18 @@ def reserve_step2(request):
 
         return redirect("reserve_success")
 
+    # =========================
+    # GET
+    # =========================
     context = {
         "car_type": car_type,
         "time_slots": time_slots,
         "total_cars_count": total_cars_count,
-        "range_0_24": range(now.hour, 24),
         "minutes": [0, 15, 30, 45],
+        "range_0_24": range(now.hour, 24),
+
+        "start_anchor": start_anchor,
+        "end_anchor": end_anchor,
     }
     return render(request, "booking/reserve_step2.html", context)
 
