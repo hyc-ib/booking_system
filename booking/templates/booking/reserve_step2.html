@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% load static %}
+
 {% block content %}
 
 <style>
@@ -197,21 +199,48 @@
                 {% for car in slot.car_status %}
                     <div style="display: flex; flex-direction: column; align-items: center; width: 60px;">
 
-                        {% if car.reserved %}
-                            <div class="car-icon" style="color: #e2e8f0; filter: grayscale(100%); font-size: 20px;">
-                                🚗
+                        {% if car.type == "10人座" %}
+                            <img src="{% static 'images/10SeatCar.png' %}" style="
+                                width:30px;
+                                filter:
+                                    {% if car.state == 'using' %}
+                                        brightness(0) saturate(100%) invert(31%) sepia(92%) saturate(7491%) hue-rotate(356deg) brightness(97%) contrast(112%);
+                                    {% elif car.state == 'pending' %}
+                                        brightness(0) saturate(100%) invert(66%) sepia(89%) saturate(843%) hue-rotate(359deg) brightness(102%) contrast(102%);
+                                    {% else %}
+                                        brightness(0) saturate(100%) invert(67%) sepia(34%) saturate(560%) hue-rotate(85deg) brightness(95%) contrast(90%);
+                                    {% endif %}
+                            ">
+                        {% else %}
+                            <img src="{% static 'images/4SeatCar.png' %}" style="
+                                width:30px;
+                                filter:
+                                    {% if car.state == 'using' %}
+                                        brightness(0) saturate(100%) invert(31%) sepia(92%) saturate(7491%) hue-rotate(356deg) brightness(97%) contrast(112%);
+                                    {% elif car.state == 'pending' %}
+                                        brightness(0) saturate(100%) invert(66%) sepia(89%) saturate(843%) hue-rotate(359deg) brightness(102%) contrast(102%);
+                                    {% else %}
+                                        brightness(0) saturate(100%) invert(67%) sepia(34%) saturate(560%) hue-rotate(85deg) brightness(95%) contrast(90%);
+                                    {% endif %}
+                            ">
+                        {% endif %}
+
+                        {% if car.state == "using" %}
+                            <div style="color:#ef4444; font-size:12px;">
+                                使用中
                             </div>
-                            <div style="color: #94a3b8; font-size: 12px;">
+
+                        {% elif car.state == "pending" %}
+                            <div style="color:#f59e0b; font-size:12px;">
                                 已預約
                             </div>
+
                         {% else %}
-                            <div class="car-icon" style="color: #ffffff; -webkit-text-stroke: 1.5px #22c55e; font-size: 20px;">
-                                🚗
-                            </div>
-                            <div style="color: #22c55e; font-weight: bold; font-size: 12px;">
+                            <div style="color:#22c55e; font-size:12px;">
                                 可預約
                             </div>
                         {% endif %}
+
                     </div>
                 {% endfor %}
             </div>
