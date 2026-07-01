@@ -235,13 +235,11 @@
 
             <!-- START TIME（系統固定） -->
             <div class="mb-3">
-                <label><b>借車時間（系統自動）</b></label>
+                <label><b>借車時間</b></label>
 
                 <div style="padding:10px; background:#f3f4f6; border-radius:8px;">
-                    <span id="start_time_text">計算中...</span>
+                    <span id="start_time_text">{{ start_anchor|date:"H:i" }}</span>
                 </div>
-
-                <input type="hidden" name="start_time" id="start_time_input">
             </div>
 
             <!-- END TIME（使用者選） -->
