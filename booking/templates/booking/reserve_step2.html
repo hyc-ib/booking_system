@@ -103,39 +103,28 @@
     .wrapper {
         display: flex;
         gap: 20px;
-        margin-top: 20px;
+        margin-top: 50px;
     }
 
     /* calendar */
     .calendar {
         position: relative;
-        width: 500px;
-        height: 600px;
+        width: 450px;
+        height: 800px;
         border: 1px solid #ddd;
         background: #fafafa;
         overflow: hidden;
     }
 
-    .hour-row {
+    .time-slot-item {
         display: flex;
         height: 50px;
         border-bottom: 1px solid #eee;
     }
 
-    .hour {
-        width: 60px;
-        font-size: 12px;
-        color: #666;
-        text-align: right;
-        padding-right: 8px;
-    }
-
-    .slot {
-        flex: 1;
-        background: white;
-    }
-
-    /* panel */
+    /* =========================
+    panel
+    ========================= */
     .panel {
         flex: 1;
         background: white;
@@ -189,24 +178,39 @@
 </div>
 
 <div class="wrapper">
+
+    <!-- =========================
+        LEFT: CALENDAR
+    ========================= -->
     <div class="calendar">
-        <div id="calendar-hint" style="padding: 80px 20px; text-align: center; color: #888; font-size: 15px;">
-            <div style="font-size: 24px; margin-bottom: 10px;">🔍</div>
-            請在右側選擇「借車時間（小時）」<br>系統將即時在左側呈現該時段起連續 3 小時的公務車狀態
-        </div>
 
         {% for slot in time_slots %}
-        <div class="time-slot-item" data-hour="{{ slot.hour }}">
-            <div style="width: 80px; font-size: 17px; font-weight: bold; color: #333;">{{ slot.time_label }}</div>
-            <div style="flex: 1; display: flex; gap: 15px; align-items: center;">
+        <div class="time-slot-item"
+             data-datetime="{{ slot.datetime }}">
+
+            <div style="display:flex; width:100%; align-items: center;">
+
+                <div style="width: 80px; font-size: 17px; font-weight: bold; color: #333;">
+                    {{ slot.time_label }}
+                </div>
+
                 {% for car in slot.car_status %}
-                    <div class="car-box">
+                    <div style="display: flex; flex-direction: column; align-items: center; width: 60px;">
+
                         {% if car.reserved %}
-                            <div class="car-icon" style="color: #e2e8f0; filter: grayscale(100%);">🚗</div>
-                            <div class="car-status-text" style="color: #94a3b8;">已預約</div>
+                            <div class="car-icon" style="color: #e2e8f0; filter: grayscale(100%); font-size: 20px;">
+                                🚗
+                            </div>
+                            <div style="color: #94a3b8; font-size: 12px;">
+                                已預約
+                            </div>
                         {% else %}
-                            <div class="car-icon" style="color: #ffffff; -webkit-text-stroke: 1.5px #22c55e;">🚗</div>
-                            <div class="car-status-text" style="color: #22c55e; font-weight: bold;">可預約</div>
+                            <div class="car-icon" style="color: #ffffff; -webkit-text-stroke: 1.5px #22c55e; font-size: 20px;">
+                                🚗
+                            </div>
+                            <div style="color: #22c55e; font-weight: bold; font-size: 12px;">
+                                可預約
+                            </div>
                         {% endif %}
                     </div>
                 {% endfor %}
@@ -215,7 +219,9 @@
         {% endfor %}
     </div>
 
-    <!-- form -->
+    <!-- =========================
+        RIGHT: FORM
+    ========================= -->
     <div class="panel">
 
         <form method="post">
@@ -227,25 +233,18 @@
             </div>
             {% endif %}
 
+            <!-- START TIME（系統固定） -->
             <div class="mb-3">
-                <label class="form-label" style="font-weight: bold;">借車時間</label>
-                <div class="time-group">
-                    <select name="start_hour" id="start_hour_select" required>
-                        <option value="">小時</option>
-                        {% for i in range_0_24 %}
-                        <option value="{{ i }}">{{ i }}</option>
-                        {% endfor %}
-                    </select>
-                    <select name="start_minute" id="start_minute_select" required>
-                        <option value="">分鐘</option>
-                        {% for m in minutes %}
-                        <option value="{{ m }}">{{ m|stringformat:"02d" }}</option>
-                        {% endfor %}
-                    </select>
+                <label><b>借車時間（系統自動）</b></label>
 
+                <div style="padding:10px; background:#f3f4f6; border-radius:8px;">
+                    <span id="start_time_text">計算中...</span>
                 </div>
+
+                <input type="hidden" name="start_time" id="start_time_input">
             </div>
 
+            <!-- END TIME（使用者選） -->
             <div class="mb-3">
                 <label class="form-label" style="font-weight: bold;">還車時間</label>
                 <div class="time-group">
@@ -288,79 +287,67 @@
 </div>
 
 <script>
-    const hourSelect = document.getElementById('start_hour_select');
-    const minuteSelect = document.getElementById('start_minute_select');
-    const slotItems = document.querySelectorAll('.time-slot-item');
-    const hint = document.getElementById('calendar-hint');
 
-    function updateCalendarVisibility() {
-        if (!hourSelect) return;
-        const selectedValue = hourSelect.value;
+/* =========================
+   🔥 15-min round start time
+========================= */
+function getStartTime() {
 
-        if (selectedValue === "") {
-            hint.style.display = 'block';
-            slotItems.forEach(item => item.style.display = 'none');
+    const now = new Date();
+
+    let h = now.getHours();
+    let m = now.getMinutes();
+
+    if (m <= 15) m = 15;
+    else if (m <= 30) m = 30;
+    else if (m <= 45) m = 45;
+    else {
+        h += 1;
+        m = 0;
+    }
+
+    const hh = String(h).padStart(2,'0');
+    const mm = String(m).padStart(2,'0');
+
+    return `${hh}:${mm}`;
+}
+
+/* =========================
+   🔥 init start time
+========================= */
+function initStartTime() {
+    const t = getStartTime();
+
+    document.getElementById("start_time_text").innerText = t;
+    document.getElementById("start_time_input").value = t;
+}
+
+/* =========================
+   🔥 4-hour window filter
+========================= */
+function apply4HourWindow() {
+
+    const start = new Date("{{ start_anchor|date:'c' }}");
+    const end = new Date("{{ end_anchor|date:'c' }}");
+
+    document.querySelectorAll(".time-slot-item").forEach(el => {
+
+        const slotTime = new Date(el.dataset.datetime);
+
+        if (slotTime >= start && slotTime < end) {
+            el.style.display = "flex";
         } else {
-            hint.style.display = 'none';
-            const startH = parseInt(selectedValue);
-            const targetHours = [startH, (startH + 1) % 24, (startH + 2) % 24];
-
-            slotItems.forEach(item => {
-                const itemHour = parseInt(item.getAttribute('data-hour'));
-                if (targetHours.includes(itemHour)) {
-                    item.style.display = 'flex';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
+            el.style.display = "none";
         }
-    }
+    });
+}
 
-    function enforce15MinRule() {
-        const now = new Date();
-        const maxTime = new Date(now.getTime() + 15 * 60 * 1000);
-        const currentHour = now.getHours();
-        const maxHour = maxTime.getHours();
+/* =========================
+   init
+========================= */
+initStartTime();
+apply4HourWindow();
 
-        if (hourSelect) {
-            Array.from(hourSelect.options).forEach(opt => {
-                if (!opt.value) return;
-                const h = parseInt(opt.value);
-                opt.disabled = (h < currentHour || h > maxHour);
-            });
-        }
-
-        if (hourSelect && minuteSelect) {
-            const selectedHour = parseInt(hourSelect.value);
-            Array.from(minuteSelect.options).forEach(opt => {
-                if (!opt.value) return;
-                const m = parseInt(opt.value);
-                
-                if (selectedHour === currentHour) {
-                    opt.disabled = (m < now.getMinutes() || (selectedHour === maxHour && m > maxTime.getMinutes()));
-                } else if (selectedHour === maxHour) {
-                    opt.disabled = (m > maxTime.getMinutes());
-                } else {
-                    opt.disabled = true;
-                }
-            });
-        }
-    }
-
-    enforce15MinRule();
-    updateCalendarVisibility();
-
-    if (hourSelect) {
-        hourSelect.addEventListener('change', function() {
-            enforce15MinRule();
-            updateCalendarVisibility();
-        });
-    }
-    if (minuteSelect) {
-        minuteSelect.addEventListener('change', enforce15MinRule);
-    }
-
-    setInterval(enforce15MinRule, 60000);
 </script>
 
 {% endblock %}
