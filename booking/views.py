@@ -187,9 +187,7 @@ def home(request):
 
     # ================= 使用中 reservations =================
     active_reservations = Reservation.objects.filter(
-        status="on-going",
-        start_time__lte=now,
-        end_time__gte=now
+        status="on-going"
     )
 
     active_bookings = active_reservations.count()
@@ -468,13 +466,13 @@ def reserve_step2(request):
         # =========================
         # end time（保留原本）
         # =========================
-        end_hour = start_dt.hour
+        end_hour = int(request.POST.get("end_hour", 0))
         end_minute = int(request.POST.get("end_minute", 0))
 
         end_dt = timezone.make_aware(
             datetime.combine(today, time(end_hour, end_minute))
         )
-
+        print("start", start_dt, "end", end_dt)
         # =========================
         # 🔥 rule check
         # =========================
@@ -483,6 +481,8 @@ def reserve_step2(request):
                 "car_type": car_type,
                 "time_slots": time_slots,
                 "total_cars_count": total_cars_count,
+                "minutes": [0, 15, 30, 45],
+                "range_0_24": range(now.hour, 24),
                 "error": "結束時間必須大於開始時間"
             })
 
@@ -498,7 +498,7 @@ def reserve_step2(request):
             unreturned = Reservation.objects.filter(
                 car=car,
                 status="on-going",
-                end_time__lt=now
+                return_time__isnull=True
             ).exists()
 
             # 🚨 先檢查這台車這個時間能不能用（最重要🔥）
@@ -556,6 +556,8 @@ def reserve_step2(request):
                 "car_type": car_type,
                 "time_slots": time_slots,
                 "total_cars_count": total_cars_count,
+                "minutes": [0, 15, 30, 45],
+                "range_0_24": range(now.hour, 24),
                 "error": "目前無可用車輛"
             })
 
@@ -579,6 +581,8 @@ def reserve_step2(request):
                     "car_type": car_type,
                     "time_slots": time_slots,
                     "total_cars_count": total_cars_count,
+                    "minutes": [0, 15, 30, 45],
+                    "range_0_24": range(now.hour, 24),
                     "error": "該時段已被預約"
                 })
 
