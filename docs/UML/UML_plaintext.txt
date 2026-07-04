@@ -1,0 +1,55 @@
+@startuml
+skinparam packageStyle rectangle
+skinparam usecase {
+    BackgroundColor LightCyan
+    BorderColor DarkCyan
+    ArrowColor #333333
+}
+
+left to right direction
+
+actor "一般同仁\n(User)" as user
+actor "系統管理員\n(Admin)" as admin
+
+rectangle "公務車高並發預約管理系統" {
+    
+    package "身分與權限模組" {
+        usecase "UC-01 手機免密碼 OTP 登入" as uc_otp
+        usecase "UC-02 新用戶註冊與驗證信" as uc_reg
+    }
+    
+    package "數據監控儀表板" {
+        usecase "UC-03 檢視調度 KPI 與趨勢圖表" as uc_dash
+    }
+    
+    package "預約核心模組" {
+        usecase "UC-04 申請預約公務車" as uc_reserve
+        usecase "UC-05 15分鐘時間雙重卡控" as uc_time
+        usecase "UC-06 高並發防搶單鎖定\n(select_for_update)" as uc_lock
+    }
+    
+    package "現場調度與審計模組" {
+        usecase "UC-07 辦理車輛報到 (Check-in)" as uc_checkin
+        usecase "UC-08 惰性清理幽靈預約\n(自動釋出資源)" as uc_lazy
+        usecase "UC-09 辦理車輛歸還 (Return)" as uc_return
+        usecase "UC-10 瀏覽個人歷史紀錄" as uc_history
+    }
+}
+
+' 角色與功能連線
+user --> uc_otp
+user --> uc_reg
+user --> uc_dash
+user --> uc_reserve
+user --> uc_checkin
+user --> uc_return
+user --> uc_history
+
+admin --> uc_dash
+
+' 核心包含關係 (Include)
+uc_reserve ..> uc_time : <<include>>
+uc_reserve ..> uc_lock : <<include>>
+uc_checkin ..> uc_lazy : <<include>>
+
+@endum
