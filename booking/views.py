@@ -514,6 +514,7 @@ def reserve_step2(request):
             # 🚨 先檢查這台車這個時間能不能用（最重要🔥）
             conflict = Reservation.objects.filter(
                 car=car,
+                status__in=["pending", "on-going"],
                 start_time__lt=end_dt,
                 end_time__gt=start_dt
             ).exists()
@@ -579,9 +580,10 @@ def reserve_step2(request):
             # 🔥 1. 鎖車（關鍵）
             car = Car.objects.select_for_update().get(id=best_car.id)
 
-            # 🔥 2. 再檢查衝突
+            # 🔥 2. 再檢查衝突（排除已完成 / 已取消，確保還車後立即釋出）
             conflict = Reservation.objects.filter(
                 car=car,
+                status__in=["pending", "on-going"],
                 start_time__lt=end_dt,
                 end_time__gt=start_dt
             ).exists()
