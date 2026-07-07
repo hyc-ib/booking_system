@@ -1,5 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from django.utils import timezone
+
 
 def apply_user_risk_lock(profile, risk_level):
     now = timezone.localtime()
@@ -28,7 +29,6 @@ def is_user_locked(profile):
         return False
 
     if profile.risk_locked_until <= now:
-        profile.risk_locked_until = None
         return False
 
     return True

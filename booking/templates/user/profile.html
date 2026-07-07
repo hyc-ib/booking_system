@@ -2,312 +2,299 @@
 {% block content %}
 
 <style>
-.page {
-    max-width: 520px;
-    margin: 40px auto;
-}
+    .page {
+        max-width: 520px;
+        margin: 40px auto;
+    }
 
-/* 基本 row */
-.row {
-    display: flex;
-    justify-content: space-between;
-    padding: 14px 0;
-    border-bottom: 1px solid #eee;
-}
+    /* 基本 row */
+    .row {
+        display: flex;
+        justify-content: space-between;
+        padding: 14px 0;
+        border-bottom: 1px solid #eee;
+    }
 
-.label {
-    font-weight: bold;
-    color: #666;
-}
+    .label {
+        font-weight: bold;
+        color: #666;
+    }
 
-.value {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-}
+    .value {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
 
-/* input */
-input {
-    padding: 6px 10px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-}
+    /* input */
+    input {
+        padding: 6px 10px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+    }
 
-/* buttons */
-.btn-group {
-    margin-top: 30px;
-    display: flex;
-    gap: 10px;
-    justify-content: center;
-}
+    /* buttons */
+    .btn-group {
+        margin-top: 30px;
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+    }
 
-.small-btn {
-    font-size: 12px;
-    padding: 4px 10px;
-    border-radius: 6px;
-    border: 1px solid #1f4ed8;
-    background: white;
-    color: #1f4ed8;
-    cursor: pointer;
-    transition: 0.2s;
-}
+    .small-btn {
+        font-size: 12px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        border: 1px solid #1f4ed8;
+        background: white;
+        color: #1f4ed8;
+        cursor: pointer;
+        transition: 0.2s;
+    }
 
-.small-btn:hover {
-    opacity: 0.85;
-}
+    .small-btn:hover {
+        opacity: 0.85;
+    }
 
-.small-btn.warning {
-    border-color: #f59e0b;
-    color: #f59e0b;
-}
+    .small-btn.warning {
+        border-color: #f59e0b;
+        color: #f59e0b;
+    }
 
-.small-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
+    .small-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
 
-/* badge */
-.badge-ok {
-    color: green;
-    font-size: 12px;
-}
+    /* badge */
+    .badge-ok {
+        color: green;
+        font-size: 12px;
+    }
 
-.badge-no {
-    color: red;
-    font-size: 12px;
-}
+    .badge-no {
+        color: red;
+        font-size: 12px;
+    }
 
-/* =========================
-   🔥 視覺化卡片區（重點）
+    /* =========================
+   視覺化卡片區
 ========================= */
-.card-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    width: 100%;
-}
+    .card-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        width: 100%;
+    }
 
-.card {
-    background: #fff;
-    border: 1px solid #eee;
-    border-radius: 10px;
-    padding: 12px;
-    min-height: 70px;
-}
+    .card {
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 10px;
+        padding: 12px;
+        min-height: 70px;
+    }
 
-.card-title {
-    font-size: 12px;
-    color: #666;
-}
+    .card-title {
+        font-size: 12px;
+        color: #666;
+    }
 
-.card-value {
-    font-size: 20px;
-    font-weight: 700;
-    margin-top: 4px;
-}
+    .card-value {
+        font-size: 20px;
+        font-weight: 700;
+        margin-top: 4px;
+    }
 
-.card-value.red {
-    color: #ef4444;
-}
+    .card-value.red {
+        color: #ef4444;
+    }
 
-.card-value.orange {
-    color: #f59e0b;
-}
+    .card-value.orange {
+        color: #f59e0b;
+    }
 
-.card-value.blue {
-    color: #1f4ed8;
-}
+    .card-value.blue {
+        color: #1f4ed8;
+    }
 
-/* 使用紀錄小卡 */
-.stat-wrap {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    width: 100%;
-}
+    /* 使用紀錄小卡 */
+    .stat-wrap {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        width: 100%;
+    }
 
-.stat-card {
-    background: #fff;
-    border: 1px solid #eee;
-    border-radius: 10px;
-    padding: 10px;
-    flex: 1;
-    min-width: 120px;
-}
+    .stat-card {
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 10px;
+        padding: 10px;
+        flex: 1;
+        min-width: 120px;
+    }
 
-.stat-title {
-    font-size: 12px;
-    color: #666;
-}
+    .stat-title {
+        font-size: 12px;
+        color: #666;
+    }
 
-.stat-value {
-    font-size: 22px;
-    font-weight: 700;
-}
+    .stat-value {
+        font-size: 22px;
+        font-weight: 700;
+    }
 
-/* logout */
-.logout-wrapper {
-    margin-top: 35px;
-    display: flex;
-    justify-content: center;
-}
-
+    /* logout */
+    .logout-wrapper {
+        margin-top: 35px;
+        display: flex;
+        justify-content: center;
+    }
 </style>
 
 <div class="page">
 
-<h2>個人資料</h2>
+    <h2>個人資料</h2>
 
-{% if risk_level == "high_risk" %}
-<div style="background:#fee2e2; color:#b91c1c; padding:10px; border-radius:10px; margin-bottom:15px;">
-    高風險鎖定中<br>
-    解鎖時間：{{ profile.risk_locked_until }}<br>
+    {% if risk_level == "high_risk" %}
+    <div style="background:#fee2e2; color:#b91c1c; padding:10px; border-radius:10px; margin-bottom:15px;">
+        高風險鎖定中<br>
+        解鎖時間：{{ profile.risk_locked_until }}<br>
 
-    風險分數：<strong>{{ risk_score }}</strong><br>
-    原因：{{ risk_reason }}
-</div>
-
-{% elif risk_level == "warning" %}
-<div style="background:#fef3c7; color:#92400e; padding:12px; border-radius:10px; margin-bottom:15px;">
-    <strong>異常使用行為</strong><br>
-
-    風險分數：<strong>{{ risk_score }}</strong><br>
-    原因：{{ risk_reason }}
-</div>
-
-{% elif risk_level == "normal" %}
-<div style="background:#ecfdf5; color:#166534; padding:10px; border-radius:10px; margin-bottom:15px;">
-    <strong>使用狀態正常</strong><br>
-    風險分數：{{ risk_score }}
-</div>
-{% endif %}
-
-<form method="post">
-    {% csrf_token %}
-
-    <!-- 姓名 -->
-    <div class="row">
-        <div class="label">姓名</div>
-        <div class="value">{{ request.user.username }}</div>
+        風險分數：<strong>{{ risk_score }}</strong><br>
+        原因：{{ risk_reason }}
     </div>
 
-    <!-- 手機 -->
-    <div class="row">
-        <div class="label">手機</div>
-        <div class="value">{{ profile.phone }}</div>
+    {% elif risk_level == "warning" %}
+    <div style="background:#fef3c7; color:#92400e; padding:12px; border-radius:10px; margin-bottom:15px;">
+        <strong>異常使用行為</strong><br>
+
+        風險分數：<strong>{{ risk_score }}</strong><br>
+        原因：{{ risk_reason }}
     </div>
 
-    <!-- email -->
-    <div class="row">
-        <div class="label">信箱</div>
-
-        <div class="value">
-
-            <span id="emailText">{{ profile.email }}</span>
-
-            <input type="email"
-                   name="email"
-                   id="emailInput"
-                   value="{{ profile.email }}"
-                   style="display:none;">
-
-            {% if profile.is_email_verified %}
-                <span class="badge-ok">已驗證</span>
-            {% else %}
-                <span class="badge-no">未驗證</span>
-            {% endif %}
-
-            <button type="button"
-                    id="editBtn"
-                    class="small-btn">
-                修改
-            </button>
-
-            <button type="submit"
-                    name="action"
-                    value="submit"
-                    id="submitBtn"
-                    class="small-btn warning"
-                    disabled>
-                儲存 / 驗證
-            </button>
-
-        </div>
+    {% elif risk_level == "normal" %}
+    <div style="background:#ecfdf5; color:#166534; padding:10px; border-radius:10px; margin-bottom:15px;">
+        <strong>使用狀態正常</strong><br>
+        風險分數：{{ risk_score }}
     </div>
+    {% endif %}
 
-    <!-- ================= 使用紀錄（清楚化） ================= -->
-    <div class="row" style="flex-direction: column; align-items: flex-start; gap: 10px;">
-
-        <div class="label">使用紀錄</div>
-
-        <div class="stat-wrap">
-
-            <div class="stat-card">
-                <div class="stat-title">未報到</div>
-                <div class="stat-value red">
-                    {{ no_show_count|default:0 }}
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-title">逾期未還</div>
-                <div class="stat-value orange">
-                    {{ overdue_return_count|default:0 }}
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-    <!-- ================= 使用分析（更清楚） ================= -->
-    <div class="row" style="flex-direction: column; align-items: flex-start; gap: 12px;">
-
-        <div class="label">使用分析</div>
-
-        <div class="card-grid">
-
-            <div class="card">
-                <div class="card-title">信用分數</div>
-                <div class="card-value blue">
-                    {{ credit_score }}
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">未報到率</div>
-                <div class="card-value">
-                    {{ no_show_rate }}%
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">平均使用時間</div>
-                <div class="card-value">
-                    {{ avg_duration_min }} 分鐘
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">最常使用車型</div>
-                <div class="card-value" style="font-size:16px;">
-                    {{ favorite_car_type }}
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-</form>
-
-<!-- 登出 -->
-<div style="margin-top: 30px; display:flex; justify-content:center;">
-
-    <form method="post" action="{% url 'logout' %}">
+    <form method="post">
         {% csrf_token %}
 
-        <button type="submit"
-                style="
+        <!-- 姓名 -->
+        <div class="row">
+            <div class="label">姓名</div>
+            <div class="value">{{ request.user.username }}</div>
+        </div>
+
+        <!-- 手機 -->
+        <div class="row">
+            <div class="label">手機</div>
+            <div class="value">{{ profile.phone }}</div>
+        </div>
+
+        <!-- email -->
+        <div class="row">
+            <div class="label">信箱</div>
+
+            <div class="value">
+
+                <span id="emailText">{{ profile.email }}</span>
+
+                <input type="email" name="email" id="emailInput" value="{{ profile.email }}" style="display:none;">
+
+                {% if profile.is_email_verified %}
+                <span class="badge-ok">已驗證</span>
+                {% else %}
+                <span class="badge-no">未驗證</span>
+                {% endif %}
+
+                <button type="button" id="editBtn" class="small-btn">
+                    修改
+                </button>
+
+                <button type="submit" name="action" value="submit" id="submitBtn" class="small-btn warning" disabled>
+                    儲存 / 驗證
+                </button>
+
+            </div>
+        </div>
+
+        <!-- ================= 使用紀錄（清楚化） ================= -->
+        <div class="row" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+
+            <div class="label">使用紀錄</div>
+
+            <div class="stat-wrap">
+
+                <div class="stat-card">
+                    <div class="stat-title">未報到</div>
+                    <div class="stat-value red">
+                        {{ no_show_count|default:0 }}
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-title">逾期未還</div>
+                    <div class="stat-value orange">
+                        {{ overdue_return_count|default:0 }}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ================= 使用分析（更清楚） ================= -->
+        <div class="row" style="flex-direction: column; align-items: flex-start; gap: 12px;">
+
+            <div class="label">使用分析</div>
+
+            <div class="card-grid">
+
+                <div class="card">
+                    <div class="card-title">信用分數</div>
+                    <div class="card-value blue">
+                        {{ credit_score }}
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">未報到率</div>
+                    <div class="card-value">
+                        {{ no_show_rate }}%
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">平均使用時間</div>
+                    <div class="card-value">
+                        {{ avg_duration_min }} 分鐘
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">最常使用車型</div>
+                    <div class="card-value" style="font-size:16px;">
+                        {{ favorite_car_type }}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </form>
+
+    <!-- 登出 -->
+    <div style="margin-top: 30px; display:flex; justify-content:center;">
+
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+
+            <button type="submit" style="
                     background: #ef4444;
                     color: white;
                     border: none;
@@ -316,49 +303,49 @@ input {
                     font-size: 14px;
                     cursor: pointer;
                 ">
-            登出
-        </button>
+                登出
+            </button>
 
-    </form>
+        </form>
 
-</div>
+    </div>
 
 </div>
 
 <script>
-const emailText = document.getElementById("emailText");
-const emailInput = document.getElementById("emailInput");
-const editBtn = document.getElementById("editBtn");
-const submitBtn = document.getElementById("submitBtn");
+    const emailText = document.getElementById("emailText");
+    const emailInput = document.getElementById("emailInput");
+    const editBtn = document.getElementById("editBtn");
+    const submitBtn = document.getElementById("submitBtn");
 
-let editing = false;
+    let editing = false;
 
-editBtn.addEventListener("click", function () {
+    editBtn.addEventListener("click", function () {
 
-    if (!editing) {
-        emailText.style.display = "none";
-        emailInput.style.display = "inline-block";
-        emailInput.focus();
+        if (!editing) {
+            emailText.style.display = "none";
+            emailInput.style.display = "inline-block";
+            emailInput.focus();
 
-        editBtn.innerText = "取消";
-        editing = true;
+            editBtn.innerText = "取消";
+            editing = true;
 
-    } else {
-        emailText.style.display = "inline-block";
-        emailInput.style.display = "none";
+        } else {
+            emailText.style.display = "inline-block";
+            emailInput.style.display = "none";
 
-        editBtn.innerText = "修改";
-        emailInput.value = emailText.innerText;
+            editBtn.innerText = "修改";
+            emailInput.value = emailText.innerText;
 
-        editing = false;
-    }
-});
+            editing = false;
+        }
+    });
 
-emailInput.addEventListener("input", function () {
-    if (emailInput.value !== emailText.innerText) {
-        submitBtn.disabled = false;
-    }
-});
+    emailInput.addEventListener("input", function () {
+        if (emailInput.value !== emailText.innerText) {
+            submitBtn.disabled = false;
+        }
+    });
 </script>
 
 {% endblock %}

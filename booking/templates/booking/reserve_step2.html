@@ -12,7 +12,7 @@
     }
 
     /* =========================
-    ✅ PROGRESS（統一版）
+    PROGRESS
     ========================= */
 
     .progress-wrap {
@@ -187,8 +187,7 @@
     <div class="calendar">
 
         {% for slot in time_slots %}
-        <div class="time-slot-item"
-             data-datetime="{{ slot.datetime }}">
+        <div class="time-slot-item" data-datetime="{{ slot.datetime }}">
 
             <div style="display:flex; width:100%; align-items: center;">
 
@@ -197,10 +196,10 @@
                 </div>
 
                 {% for car in slot.car_status %}
-                    <div style="display: flex; flex-direction: column; align-items: center; width: 60px;">
+                <div style="display: flex; flex-direction: column; align-items: center; width: 60px;">
 
-                        {% if car.type == "10人座" %}
-                            <img src="{% static 'images/10SeatCar.png' %}" style="
+                    {% if car.type == "10人座" %}
+                    <img src="{% static 'images/10SeatCar.png' %}" style="
                                 width:30px;
                                 filter:
                                     {% if car.state == 'using' %}
@@ -211,8 +210,8 @@
                                         brightness(0) saturate(100%) invert(67%) sepia(34%) saturate(560%) hue-rotate(85deg) brightness(95%) contrast(90%);
                                     {% endif %}
                             ">
-                        {% else %}
-                            <img src="{% static 'images/4SeatCar.png' %}" style="
+                    {% else %}
+                    <img src="{% static 'images/4SeatCar.png' %}" style="
                                 width:30px;
                                 filter:
                                     {% if car.state == 'using' %}
@@ -223,25 +222,25 @@
                                         brightness(0) saturate(100%) invert(67%) sepia(34%) saturate(560%) hue-rotate(85deg) brightness(95%) contrast(90%);
                                     {% endif %}
                             ">
-                        {% endif %}
+                    {% endif %}
 
-                        {% if car.state == "using" %}
-                            <div style="color:#ef4444; font-size:12px;">
-                                使用中
-                            </div>
-
-                        {% elif car.state == "pending" %}
-                            <div style="color:#f59e0b; font-size:12px;">
-                                已預約
-                            </div>
-
-                        {% else %}
-                            <div style="color:#22c55e; font-size:12px;">
-                                可預約
-                            </div>
-                        {% endif %}
-
+                    {% if car.state == "using" %}
+                    <div style="color:#ef4444; font-size:12px;">
+                        使用中
                     </div>
+
+                    {% elif car.state == "pending" %}
+                    <div style="color:#f59e0b; font-size:12px;">
+                        已預約
+                    </div>
+
+                    {% else %}
+                    <div style="color:#22c55e; font-size:12px;">
+                        可預約
+                    </div>
+                    {% endif %}
+
+                </div>
                 {% endfor %}
             </div>
         </div>
@@ -315,65 +314,65 @@
 
 <script>
 
-/* =========================
-   🔥 15-min round start time
-========================= */
-function getStartTime() {
+    /* =========================
+       15-min round start time
+    ========================= */
+    function getStartTime() {
 
-    const now = new Date();
+        const now = new Date();
 
-    let h = now.getHours();
-    let m = now.getMinutes();
+        let h = now.getHours();
+        let m = now.getMinutes();
 
-    if (m <= 15) m = 15;
-    else if (m <= 30) m = 30;
-    else if (m <= 45) m = 45;
-    else {
-        h += 1;
-        m = 0;
+        if (m <= 15) m = 15;
+        else if (m <= 30) m = 30;
+        else if (m <= 45) m = 45;
+        else {
+            h += 1;
+            m = 0;
+        }
+
+        const hh = String(h).padStart(2, '0');
+        const mm = String(m).padStart(2, '0');
+
+        return `${hh}:${mm}`;
     }
 
-    const hh = String(h).padStart(2,'0');
-    const mm = String(m).padStart(2,'0');
+    /* =========================
+       init start time
+    ========================= */
+    function initStartTime() {
+        const t = getStartTime();
 
-    return `${hh}:${mm}`;
-}
+        document.getElementById("start_time_text").innerText = t;
+        document.getElementById("start_time_input").value = t;
+    }
 
-/* =========================
-   🔥 init start time
-========================= */
-function initStartTime() {
-    const t = getStartTime();
+    /* =========================
+       4-hour window filter
+    ========================= */
+    function apply4HourWindow() {
 
-    document.getElementById("start_time_text").innerText = t;
-    document.getElementById("start_time_input").value = t;
-}
+        const start = new Date("{{ start_anchor|date:'c' }}");
+        const end = new Date("{{ end_anchor|date:'c' }}");
 
-/* =========================
-   🔥 4-hour window filter
-========================= */
-function apply4HourWindow() {
+        document.querySelectorAll(".time-slot-item").forEach(el => {
 
-    const start = new Date("{{ start_anchor|date:'c' }}");
-    const end = new Date("{{ end_anchor|date:'c' }}");
+            const slotTime = new Date(el.dataset.datetime);
 
-    document.querySelectorAll(".time-slot-item").forEach(el => {
+            if (slotTime >= start && slotTime < end) {
+                el.style.display = "flex";
+            } else {
+                el.style.display = "none";
+            }
+        });
+    }
 
-        const slotTime = new Date(el.dataset.datetime);
-
-        if (slotTime >= start && slotTime < end) {
-            el.style.display = "flex";
-        } else {
-            el.style.display = "none";
-        }
-    });
-}
-
-/* =========================
-   init
-========================= */
-initStartTime();
-apply4HourWindow();
+    /* =========================
+       init
+    ========================= */
+    initStartTime();
+    apply4HourWindow();
 
 </script>
 

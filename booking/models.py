@@ -36,8 +36,8 @@ class Car(models.Model):
     type = models.CharField(
         max_length=10,
         choices=TYPE_CHOICES,
-        null=True,      # 👈 加這個
-        blank=True      # 👈 加這個
+        null=True,
+        blank=True,
     )
 
     def __str__(self):
@@ -45,6 +45,13 @@ class Car(models.Model):
 
 
 class Reservation(models.Model):
+    class Status(models.TextChoices):
+        PENDING = "pending", "未報到"
+        ON_GOING = "on-going", "尚未還車"
+        COMPLETED = "completed", "已完成"
+        CANCELLED = "cancelled", "已取消"
+        NO_CHECK_IN = "no-checkIn", "未報到取消"
+
     user = models.ForeignKey("auth.User", on_delete=models.CASCADE)
     car = models.ForeignKey(Car, on_delete=models.CASCADE)
 
@@ -56,15 +63,7 @@ class Reservation(models.Model):
     return_time = models.DateTimeField(null=True, blank=True)
 
     status = models.CharField(
-        max_length=10,
-        choices=[
-            ("on-going", "尚未還車"),
-            ("completed", "已完成"),
-            ("cancelled", "已取消"),
-            ("no-checkIn", "未報到取消"),
-            ("pending", "未報到"),
-        ],
-        default="pending"
+        max_length=10, choices=Status.choices, default=Status.PENDING
     )
 
     def __str__(self):
