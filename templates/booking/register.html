@@ -11,7 +11,7 @@ body {
     font-family: Arial;
 }
 
-/* ===== 背景（跟登入一致） ===== */
+/* ===== 背景 ===== */
 .hero {
     height: 100vh;
     position: relative;
@@ -20,52 +20,33 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+
+    background:
+        radial-gradient(circle at 20% 20%, rgba(99,102,241,0.15), transparent 40%),
+        radial-gradient(circle at 80% 30%, rgba(236,72,153,0.12), transparent 40%),
+        radial-gradient(circle at 50% 80%, rgba(59,130,246,0.10), transparent 45%),
+        #f4f6f9;
 }
 
-.hero::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-
-    background: url("{% static 'images/car_bg.png' %}") no-repeat center center;
-    background-size: cover;
-
-    opacity: 1;
-    z-index: 0;
-}
-
-.hero::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: rgba(255,255,255,0.55);
-    z-index: 1;
-}
-
-/* ===== card（跟登入一致玻璃感） ===== */
+/* ===== card ===== */
 .card {
-    width: 380px;
+    width: 420px;
     padding: 30px;
     border-radius: 20px;
 
     background: rgba(255,255,255,0.9);
     backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
 
     border: 1px solid rgba(0,0,0,0.08);
     box-shadow: 0 15px 40px rgba(0,0,0,0.15);
-
-    color: #111;
 
     position: relative;
     z-index: 2;
 }
 
-/* 標題 */
 h1 {
     text-align: center;
     margin-bottom: 20px;
-    color: #111;
 }
 
 /* input */
@@ -77,16 +58,15 @@ label {
     font-size: 14px;
     display: block;
     margin-bottom: 5px;
-    color: #111;
 }
 
-input {
+input[type="text"],
+input[type="email"] {
     width: 100%;
     padding: 12px;
 
     border-radius: 10px;
     border: 1px solid #ddd;
-    outline: none;
 
     font-size: 15px;
     box-sizing: border-box;
@@ -105,16 +85,11 @@ input {
     font-size: 16px;
 
     cursor: pointer;
-    transition: 0.2s;
 }
 
 .btn:disabled {
     background: #ccc;
     cursor: not-allowed;
-}
-
-.btn:hover:enabled {
-    transform: scale(1.03);
 }
 
 /* msg */
@@ -124,10 +99,15 @@ input {
     font-size: 14px;
 }
 
-.error { color: #ff4d4d; }
-.success { color: #00aa66; }
+.error {
+    color: red;
+}
 
-/* phone box */
+.success {
+    color: green;
+}
+
+/* phone */
 .phone-box {
     background: rgba(31,78,216,0.08);
     padding: 10px;
@@ -136,6 +116,49 @@ input {
     margin-bottom: 15px;
     font-size: 16px;
     color: #1f4ed8;
+}
+
+/* ===== modal ===== */
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 999;
+
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    width: 800px;
+    max-width: 90%;
+
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+}
+
+.modal-body {
+    height: 400px;
+    overflow-y: auto;
+
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 10px;
+
+    line-height: 1.8;
+}
+
+.close {
+    float: right;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.policy-link {
+    color: #1f4ed8;
+    text-decoration: none;
 }
 </style>
 </head>
@@ -149,7 +172,7 @@ input {
         <h1>建立帳號</h1>
 
         <div class="phone-box">
-            📱 {{ phone }}
+             {{ phone }}
         </div>
 
         <form method="post" id="form">
@@ -157,15 +180,28 @@ input {
 
             <div class="input-group">
                 <label>姓名</label>
-                <input name="name" id="name" placeholder="請輸入姓名">
+                <input type="text" name="name" id="name" placeholder="請輸入姓名">
             </div>
 
             <div class="input-group">
                 <label>Email</label>
-                <input name="email" id="email" placeholder="example@gmail.com">
+                <input type="email" name="email" id="email" placeholder="example@gmail.com">
             </div>
 
-            <button class="btn" id="submitBtn" disabled>送出註冊</button>
+            <!-- 隱私條款 -->
+            <div style="margin-bottom:20px;">
+                <label>
+                    <input type="checkbox" id="agree" disabled>
+                    我已閱讀並同意
+                    <a href="#" id="privacyLink" class="policy-link">
+                        隱私權條款
+                    </a>
+                </label>
+            </div>
+
+            <button class="btn" id="submitBtn" disabled>
+                送出註冊
+            </button>
         </form>
 
         <div id="msg" class="msg"></div>
@@ -174,43 +210,148 @@ input {
 
 </div>
 
+<!-- modal -->
+<div id="privacyModal" class="modal">
+
+    <div class="modal-content">
+
+        <span id="closeModal" class="close">&times;</span>
+
+        <h2>隱私權條款</h2>
+
+        <div id="policyBox" class="modal-body">
+
+            公務車預約系統隱私權保護政策暨個人資料蒐集告知聲明<br><br>
+
+            歡迎使用公務車預約系統（以下簡稱本系統）。本系統非常重視您的個人隱私權，為了讓您能安心使用各項功能與服務，特此說明本系統之隱私權保護政策。<br><br>
+
+            <h3>一、個人資料的蒐集與使用目的</h3>
+
+            本系統為了提供完善的車輛調度、安全追蹤及內部行政管理之目的，將於以下情境蒐集您的個人資料：<br><br>
+
+            • 帳號註冊：包含但不限於姓名、聯絡電話及電子郵件，用於身分驗證與系統通知。<br>
+            • 預約申請：包含預約時段、預約車種、用途說明等，用於車輛核准審核及資源分配。<br>
+            • 系統軌跡：包含登入紀錄、預約異動紀錄及車輛使用時間紀錄。<br><br>
+
+            <h3>二、預約管理與資料利用期間</h3>
+
+            1. 資料保存：您的個人資料將於本系統營運期間及法令規定之保存期限內，於中華民國境內處理及利用。<br><br>
+
+            2. 利用方式：僅限於本單位行政作業、交通車輛管理及因業務需求之統計分析。<br><br>
+
+            <h3>三、逾時還車與特殊情境處理</h3>
+
+            • 預約保障：系統將依據您的預約紀錄保留車輛。<br><br>
+
+            • 逾時還車與處置：若因使用者逾時未還車導致後續預約者權益受損，系統將記錄該違規紀錄於個人檔案中。<br><br>
+
+            • 預約取消：若原預約者逾時還車，系統為保障資源利用率，有權自動取消或調整受影響之續接預約，並透過系統通知相關當事人。<br><br>
+
+            上述違規紀錄將作為未來預約權限核准之參考依據。<br><br>
+
+            <h3>四、資料安全與保護</h3>
+
+            本系統主機設有防火牆、防毒系統等相關資訊安全設備及必要安全防護措施。<br><br>
+
+            非經您的同意或法令規定，本系統絕不會將您的個人資料提供給無關第三人，或移作其他目的使用。<br><br>
+
+            <h3>五、使用者權利與行使方式</h3>
+
+            依據《個人資料保護法》第三條規定，您得依法行使查詢、閱覽、更正、停止利用及刪除等權利。<br><br>
+
+            <h3>六、隱私權保護政策之修正</h3>
+
+            本政策將因應需求不定期進行修正，修正後條款將刊登於本系統官網，不另行個別通知。<br><br>
+
+            <div style="height:100px;"></div>
+
+        </div>
+    </div>
+</div>
+
 <script>
 const nameInput = document.getElementById("name");
 const emailInput = document.getElementById("email");
+const agree = document.getElementById("agree");
+
 const btn = document.getElementById("submitBtn");
 const msg = document.getElementById("msg");
 
-// validation
-function validate() {
+const modal = document.getElementById("privacyModal");
+const policyBox = document.getElementById("policyBox");
+
+let readDone = false;
+
+/* ===== modal ===== */
+
+document.getElementById("privacyLink").onclick = (e)=>{
+    e.preventDefault();
+    modal.style.display = "flex";
+};
+
+document.getElementById("closeModal").onclick = ()=>{
+    modal.style.display = "none";
+};
+
+window.onclick = (e)=>{
+    if(e.target === modal){
+        modal.style.display = "none";
+    }
+};
+
+/* ===== 滑到底才可勾選 ===== */
+
+policyBox.addEventListener("scroll", ()=>{
+
+    if(policyBox.scrollTop + policyBox.clientHeight >= policyBox.scrollHeight - 5){
+
+        readDone = true;
+        agree.disabled = false;
+    }
+});
+
+/* ===== validation ===== */
+
+function validate(){
+
     const name = nameInput.value.trim();
     const email = emailInput.value.trim();
 
-    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const emailValid =
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-    if (!name) {
+    if(!name){
         msg.innerText = "請輸入姓名";
         msg.className = "msg error";
         btn.disabled = true;
         return;
     }
 
-    if (!emailValid) {
+    if(!emailValid){
         msg.innerText = "Email 格式錯誤";
         msg.className = "msg error";
         btn.disabled = true;
         return;
     }
 
-    msg.innerText = "可以送出 ✅";
+    if(!agree.checked){
+        msg.innerText = "請閱讀並同意隱私權條款";
+        msg.className = "msg error";
+        btn.disabled = true;
+        return;
+    }
+
     msg.className = "msg success";
+
     btn.disabled = false;
 }
 
 nameInput.addEventListener("input", validate);
 emailInput.addEventListener("input", validate);
+agree.addEventListener("change", validate);
 
 document.getElementById("form").addEventListener("submit", function(e){
-    if (btn.disabled) {
+    if(btn.disabled){
         e.preventDefault();
     }
 });
